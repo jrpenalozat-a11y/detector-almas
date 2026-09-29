@@ -1,0 +1,4 @@
+La voz de los espíritus (voz/mespeak.js) es meSpeak 1.9.6, una versión para navegador
+de eSpeak, distribuida bajo la licencia GNU General Public License v3 (GPL-3.0).
+  meSpeak: https://www.masswerk.at/mespeak/
+  eSpeak:  https://espeak.sourceforge.net/
