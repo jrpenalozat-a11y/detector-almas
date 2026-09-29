@@ -1,13 +1,14 @@
 // Detector de Almas en Pena: funciona sin conexión.
 // Sube CACHE al cambiar archivos del núcleo.
-const CACHE = "almas-v3";
-const CORE = ["./", "index.html", "manifest.json", "icon-192.png", "icon-512.png", "voz/mespeak.js"];
+const CACHE = "almas-v7";
+const CORE = ["./", "index.html", "manifest.json", "icon-192.png", "icon-512.png", "voz/mespeak.js", "voz-worker.js"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
 });
+// al actualizar se borran las versiones viejas de la app, nunca la voz descargada («almas-voz»)
 self.addEventListener("activate", e => {
-  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE && k !== "almas-voz").map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 self.addEventListener("fetch", e => {
   const req = e.request;
@@ -20,7 +21,11 @@ self.addEventListener("fetch", e => {
     return;
   }
   // el resto (voz, íconos, fuentes): primero la copia guardada
-  if (url.origin === location.origin || /fonts\.(googleapis|gstatic)\.com$/.test(url.hostname)) {
+  // el motor de la voz realista (onnxruntime y el fonetizador) también queda guardado para usarla sin internet;
+  // el modelo de voz lo guarda la propia app en «almas-voz»
+  const engine = url.hostname === "cdnjs.cloudflare.com" && url.pathname.includes("/onnxruntime-web/")
+    || url.hostname === "cdn.jsdelivr.net" && url.pathname.includes("/piper-wasm@");
+  if (url.origin === location.origin || engine || /fonts\.(googleapis|gstatic)\.com$/.test(url.hostname)) {
     e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(r => {
       if (r.ok || r.type === "opaque") { const cp = r.clone(); caches.open(CACHE).then(c => c.put(req, cp)); }
       return r;

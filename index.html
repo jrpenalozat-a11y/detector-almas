@@ -639,12 +639,25 @@
       <li>Respuesta de sí o no: toca una vez la palabra «Sí» o «No» del tablero. Parpadea un instante y la próxima respuesta será esa. Toca de nuevo la misma palabra para cancelar. Esto tiene prioridad sobre todo lo demás.</li>
       <li>Con el sonido encendido, el espíritu dice la respuesta en voz alta con voz de ultratumba. Los sonidos de la casa (pasos, puertas, golpes, llantos, gritos lejanos, susurros) son grabaciones reales; los lejanos suenan como si vinieran de otra pieza.</li>
       <li>Espíritus: en cada sesión llega uno de 87 (49 demonios con sus propias frases, 30 almas en pena y 8 niños). Cada uno tiene su propia voz. Al pulsar «Cerrar sesión» llega otro.</li>
+      <li>Voz realista (más abajo): elige el acento y pulsa «Descargar esta voz». Es una voz neuronal que suena como una persona de verdad, de hombre o de mujer según el espíritu, con los mismos efectos de ultratumba. En la «Chilena», los espíritus hombres hablan con una voz entrenada con chilenos y las mujeres y niños con una voz latina que pronuncia a la chilena. La voz chilena es pesada: la app la prepara mientras el espíritu deletrea; si el teléfono no alcanza, esa frase sale con una voz latina de hombre. Se descarga una vez (mejor con wifi) y después funciona sin internet. Prueba cómo suena con «Probar la voz».</li>
       <li>Presentes (más abajo): escribe los nombres de los que juegan, separados por coma. El espíritu los nombra con frases como «Camila, te tiemblan las manos» o «Pedro, no le sueltes la mano a Camila»: en casi la mitad de sus respuestas en la tabla, en la llamada fantasma, en la cámara y cuando habla solo, y a veces los susurra. «Que nombre a alguien ahora» lo dispara en el momento. Los nombres quedan guardados en el teléfono.</li>
       <li>Nombre del espíritu (más abajo): escribe el nombre que quieras (por ejemplo «Doña Rosa» o el de alguien que la víctima conozca) y desde ese momento el espíritu es ese, en la tabla, el radar, la llamada y la cámara. La app reconoce si el nombre es de mujer o de hombre y le pone esa voz; si se equivoca, toca el botón de la voz para cambiarla. Queda guardado en el teléfono aunque cierres la sesión. Borra el nombre para volver a espíritus al azar.</li>
       <li>Llamada fantasma: al pulsar «Cerrar sesión» la pantalla se pone negra como si la app se apagara. A los 8–14 segundos entra una llamada de un número privado. Si bloquean el teléfono o cierran la app, la llamada entra apenas vuelvan a abrirla. Al contestar suena bajito por el auricular, con sonido de teléfono (hay que acercarlo al oído) y al final grita a todo volumen; con el botón «Altavoz» se escucha fuerte para todos. Se oye estática y respiración, y el espíritu dice la respuesta con su voz (la secreta si la escribiste antes de cerrar). Si la rechazan, vuelve a sonar; a la segunda se contesta sola. Para salir de la pantalla negra sin esperar, mantenla apretada 3 segundos.</li>
       <li>Cámara espectral: pulsa «Tomar foto» o «Grabar video» (graba hasta 8 segundos, con sonido). La cámara se ve normal, sin filtros; con «Visión nocturna: sí» se ve como cámara infrarroja de vigilancia. Apunta a la parte oscura de la pieza. En el resultado aparece una figura translúcida que calza con la escena: de pie, cruzando o asomada por un borde, con el fondo deformado a través de ella. En el video dura 1–2 segundos a mitad de la toma, con un par de cuadros cortados. No sale ningún texto ni aviso: deja que la descubran solos. «Guardar» entrega el archivo con nombre de cámara (IMG_… o VID_…) para mostrarlo o mandarlo por WhatsApp. Si la figura no convence, «Otra aparición» genera otra sobre la misma toma. El tipo de figura depende del espíritu de la sesión (dama, hombre, niño o sombra).</li>
       <li>Radar: pulsa «Escanear el sector» (o escribe <code>..</code> en la pregunta). Escribe los nombres de los presentes separados por coma (o solo cuántos son), pulsa «Ubicar en el radar» y toca la pantalla del radar donde está cada uno. Con nombres, el espíritu los menciona en sus respuestas y dice junto a quién está. Tú eres el centro; arriba es hacia donde apunta el teléfono. Al rato aparece un espíritu que cambia de posición y dice su nombre en la tabla.</li>
     </ol>
+    <p class="sb-title">Voz realista</p>
+    <div class="spname">
+      <div class="sp-row">
+        <select id="vozPack" aria-label="Voz realista">
+          <option value="cl">Chilena · hombre chileno, mujer latina a la chilena · 216 MB</option>
+          <option value="es">Acento de España · hombre y mujer · 95 MB</option>
+        </select>
+        <button type="button" id="vozGet">Descargar esta voz</button>
+      </div>
+      <label class="sb-check"><input type="checkbox" id="vozOn" disabled> Usar la voz realista (si no, la voz robótica de antes)</label>
+      <p class="sp-hint" id="vozHint">Se descarga una sola vez (mejor con wifi) y queda guardada en el teléfono.</p>
+    </div>
     <p class="sb-title">Presentes</p>
     <div class="spname">
       <input type="text" id="presentes" placeholder="Camila, Pedro, Tía Rosa" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Nombres de los presentes">
@@ -1481,6 +1494,10 @@
     const c = live(); if (!c) return;
     const names = presentNames();
     if (!text) text = names.length && Math.random() < .35 ? pick(names) + (Math.random() < .5 ? "" : ", " + pick(["ven", "mírame", "estoy aquí"])) : pick(WHISPERS_SAID);
+    const pan0 = side != null ? side * rnd(.7, 1) : (Math.random() < .5 ? -1 : 1) * rnd(.6, 1);
+    const busyVoz = neural.on && workers.piper && workers.piper.pending() > 1;
+    const nv = busyVoz ? null : await neuralVoice(text, currentSpirit(), { fast: true });
+    if (nv && live()) { ghostWhisper(nv, rnd(.82, .95), ctx.currentTime + .02, pan0, 1.1); return; }
     const M = await loadMeSpeak();
     if (!M || !live()) { SFX.susurro(); return; } // sin la voz, un susurro sin palabras
     const buf = await synth(M, text.toLowerCase(), { variant: "whisperf", pitch: rnd(0, 20), speed: 110, amplitude: 140 });
@@ -1615,17 +1632,149 @@
     return v;
   }
 
+  /* ---------- voz realista: voces neuronales que corren en el teléfono ----------
+     - Chilena: los hombres (y demonios) hablan con una voz afinada con hablantes chilenos
+       (ylacombe/mms-spa-finetuned-chilean-monospeaker, CC BY-NC); mujeres y niños con «claude»
+       (México, Piper) pronunciando a la chilena. Si la voz chilena no alcanza a estar lista,
+       esa frase sale con una voz latina de hombre liviana (Piper «ald», también a la chilena).
+     - España: un modelo Piper con voz de hombre y de mujer.
+     Se descargan una vez desde huggingface.co y quedan en Cache Storage «almas-voz»; la voz se
+     genera en voz-worker.js, fuera de la página. */
+  const PIPER_HF = "https://huggingface.co/rhasspy/piper-voices/resolve/main/";
+  const PIPER_PH = "https://cdn.jsdelivr.net/npm/@diffusionstudio/piper-wasm@1.0.0/build/piper_phonemize";
+  const MMS_BASE = "https://huggingface.co/ylacombe/mms-spa-finetuned-chilean-monospeaker/resolve/main/";
+  const NEURAL = {
+    cl: { mb: 198, chilenize: true,
+      m: { mms: true },
+      mFast: { path: "es/es_MX/ald/x_low/es_MX-ald-x_low.onnx", sid: 0 },
+      f: { path: "es/es_MX/claude/high/es_MX-claude-high.onnx", sid: 0 } },
+    es: { mb: 77,
+      m: { path: "es/es_ES/sharvard/medium/es_ES-sharvard-medium.onnx", sid: 0 },
+      f: { path: "es/es_ES/sharvard/medium/es_ES-sharvard-medium.onnx", sid: 1 } },
+  };
+  const neural = { pack: null, on: false };
+  // archivos que hay que tener guardados para cada paquete
+  function packFiles(pack) {
+    const P = NEURAL[pack], out = [PIPER_PH + ".wasm", PIPER_PH + ".data"];
+    ["m", "mFast", "f"].forEach(k => {
+      const v = P[k]; if (!v) return;
+      if (v.mms) out.push(MMS_BASE + "vocab.json", MMS_BASE + "onnx/model.onnx");
+      else out.push(PIPER_HF + v.path + ".json", PIPER_HF + v.path);
+    });
+    return [...new Set(out)];
+  }
+  // descarga (contando bytes) y guarda en el teléfono; si ya está guardado, no hace nada
+  async function cachedFetch(url, onBytes) {
+    const cache = await caches.open("almas-voz");
+    if (await cache.match(url)) return;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const reader = r.body.getReader(), parts = [];
+    for (;;) { const { done, value } = await reader.read(); if (done) break; parts.push(value); if (onBytes) onBytes(value.length); }
+    await cache.put(url, new Response(new Blob(parts)));
+  }
+  async function isCached(url) { try { return !!(await (await caches.open("almas-voz")).match(url)); } catch (e) { return false; } }
+
+  // dos procesos: uno para la voz chilena (lenta) y otro para las demás, así no se esperan
+  const workers = {};
+  function vozWorker(kind) {
+    if (!workers[kind]) {
+      const w = new Worker("voz-worker.js"), jobs = new Map();
+      let n = 0;
+      w.onmessage = e => { const j = jobs.get(e.data.id); if (!j) return; jobs.delete(e.data.id); e.data.error ? j.rej(new Error(e.data.error)) : j.res(e.data); };
+      w.onerror = () => { jobs.forEach(j => j.rej(new Error("worker"))); jobs.clear(); delete workers[kind]; };
+      const W = workers[kind] = {
+        pending: () => jobs.size,
+        // devuelve la promesa con el id del trabajo, para poder subirle la prioridad después
+        call(msg) { const id = ++n; const pr = new Promise((res, rej) => jobs.set(id, { res, rej })); pr.jobId = id; w.postMessage(Object.assign({ id }, msg)); return pr; },
+        bump(id, prio) { w.postMessage({ kind: "bump", target: id, prio }); },
+      };
+    }
+    return workers[kind];
+  }
+  // pronunciación chilena para las voces latinas: la «s» final que se pierde, «pa», «cansao», «verdá»
+  function chilenize(t) {
+    return t
+      .replace(/\bpara\b/g, "pa").replace(/\bPara\b/g, "Pa")
+      .replace(/([a-záéíóú]{2,})ado\b/g, "$1ao")
+      .replace(/ad\b/g, "á").replace(/ed\b/g, "é")
+      .replace(/s\b(?=\s*[,.;:!?…]|\s*$|\s+[bcdfgjklmnñpqrstvwxyzBCDFGJKLMNÑPQRSTVWXYZ])/g, "");
+  }
+  function speechText(text) { let t = String(text).trim(); if (!/[.!?…]$/.test(t)) t += "."; return t; }
+  const genderOf = sp => sp && (sp.g === "f" || sp.child) ? "f" : "m";
+  // prioridades en los procesos de voz
+  const PRIO = { say: 0, call: 2, board: 3, now: 4 };
+  const vozCache = new Map(); // frases ya generadas o en camino
+  function startGen(g, text, prio) {
+    const P = NEURAL[neural.pack], key = neural.pack + "|" + g + "|" + text, v = P[g];
+    const wk = vozWorker(v.mms ? "mms" : "piper");
+    const had = vozCache.get(key);
+    if (had) { if (!had.done && prio > (had.prio || 0)) { wk.bump(had.jobId, prio); had.prio = prio; } return had.p; }
+    const pr = v.mms
+      ? wk.call({ kind: "mms", text, prio })
+      : wk.call({ kind: "piper", path: v.path, sid: v.sid, text: P.chilenize ? chilenize(text) : text, prio });
+    const entry = { jobId: pr.jobId, prio, done: false };
+    entry.p = pr.then(r => { entry.done = true; return r; }, e => { vozCache.delete(key); throw e; });
+    vozCache.set(key, entry);
+    if (vozCache.size > 40) vozCache.delete(vozCache.keys().next().value);
+    return entry.p;
+  }
+  // empieza a generar lo que el espíritu va a decir, para que esté lista cuando hable
+  function prepareVoice(text, sp, prio) {
+    if (!neural.on || !neural.pack || !text) return;
+    startGen(genderOf(sp || currentSpirit()), speechText(text), prio == null ? PRIO.board : prio).catch(() => {});
+  }
+  // voz neuronal del espíritu como AudioBuffer (null si no está activa o falla: se usa la voz de antes)
+  // o.patient: espera a la voz chilena aunque tarde (para «Probar la voz»)
+  async function neuralVoice(text, sp, o = {}) {
+    if (!neural.on || !neural.pack) return null;
+    if (!live()) return null;
+    const P = NEURAL[neural.pack], t = speechText(text);
+    let g = genderOf(sp);
+    if (o.fast && g === "m" && P.mFast) g = "mFast";
+    let r = null;
+    try {
+      if (P[g].mms) {
+        const key = neural.pack + "|m|" + t, had = vozCache.has(key), job = startGen("m", t, PRIO.now);
+        r = await Promise.race([job, sleep(o.patient ? 90000 : had ? 2500 : 3000).then(() => null)]);
+        if (!r) r = await startGen("mFast", t, PRIO.now); // la chilena no alcanzó: sale la latina
+      } else r = await startGen(g, t, PRIO.now);
+    } catch (e) { return null; }
+    const c = live(); if (!c || !r) return null;
+    const pcm = r.pcm;
+    let pk = 0; for (let i = 0; i < pcm.length; i++) { const a = Math.abs(pcm[i]); if (a > pk) pk = a; }
+    const k = pk ? .9 / pk : 1, b = c.createBuffer(1, pcm.length, r.sr), d = b.getChannelData(0);
+    for (let i = 0; i < pcm.length; i++) d[i] = pcm[i] * k;
+    return b;
+  }
+  // susurro hecho con la misma voz: ruido que sigue la forma de la voz (sin tono, solo aire)
+  function ghostWhisper(buf, rate, t0, pan, amount) {
+    const c = ctx; if (!c) return;
+    const n = c.createBufferSource(); n.buffer = noiseBuf; n.loop = true;
+    const hp = c.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 1100;
+    const vca = c.createGain(); vca.gain.value = 0;
+    const drv = c.createBufferSource(); drv.buffer = buf; drv.playbackRate.value = rate;
+    const dg = c.createGain(); dg.gain.value = 2.2; drv.connect(dg); dg.connect(vca.gain);
+    const out = c.createGain(); out.gain.value = amount;
+    n.connect(hp); hp.connect(vca); vca.connect(out); out.connect(voice(pan, .9));
+    const end = t0 + buf.duration / rate + .1;
+    n.start(t0); drv.start(t0); n.stop(end); drv.stop(end);
+  }
+
   // alma en pena o niño: voz humana, temblorosa y con eco de pasillo
-  async function soulSpeak(text, sp) {
-    const M = await loadMeSpeak();
+  async function soulSpeak(text, sp, o) {
+    const nv = await neuralVoice(text, sp, o);
+    const M = nv ? null : await loadMeSpeak();
     const c = live();
-    if (!M || !c) return false;
+    if ((!nv && !M) || !c) return false;
     const v = voiceOf(sp), t = text.toLowerCase(), kid = sp.child;
-    const [voiceBuf, whisperBuf] = await Promise.all([
+    const [voiceBuf, whisperBuf] = nv ? [nv, null] : await Promise.all([
       synth(M, t, { variant: v.variant, pitch: v.pitch, speed: v.speed, wordgap: 7, amplitude: 120 }),
       synth(M, t, { variant: "whisperf", pitch: Math.min(99, v.pitch + 10), speed: v.speed, wordgap: 7, amplitude: 110 }),
     ]);
     if (!voiceBuf) return false;
+    // con la voz real: el niño es la voz de mujer más aguda; el alma, apenas más grave y lenta
+    const rate = nv ? (kid ? Math.min(1.3, v.rate + .14) : v.rate) : v.rate;
     const t0 = c.currentTime + .05;
     const out = voice(0, 1.1);
     const hp = c.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 140;
@@ -1638,9 +1787,10 @@
     const echo = c.createGain(); echo.gain.value = .4;
     hp.connect(lp); lp.connect(trem); trem.connect(out);
     trem.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(echo); echo.connect(out);
-    const src = c.createBufferSource(); src.buffer = voiceBuf; src.playbackRate.value = v.rate;
+    const src = c.createBufferSource(); src.buffer = voiceBuf; src.playbackRate.value = rate;
     src.connect(hp); src.start(t0);
-    const dur = voiceBuf.duration / v.rate;
+    const dur = voiceBuf.duration / rate;
+    if (nv) [-.7, .7].forEach((pan, i) => ghostWhisper(nv, rate, t0 + .07 + i * .13, pan, .3));
     if (whisperBuf) {
       [-.7, .7].forEach((pan, i) => {
         const w = c.createBufferSource(); w.buffer = whisperBuf; w.playbackRate.value = v.rate;
@@ -1656,12 +1806,13 @@
   }
 
   // demonio: grave, distorsionado, con una segunda voz y un gruñido, pero entendible
-  async function demonSpeak(text, sp) {
-    const M = await loadMeSpeak();
+  async function demonSpeak(text, sp, o) {
+    const nv = await neuralVoice(text, sp, o);
+    const M = nv ? null : await loadMeSpeak();
     const c = live();
-    if (!M || !c) return false;
+    if ((!nv && !M) || !c) return false;
     const v = voiceOf(sp), t = text.toLowerCase();
-    const [voiceBuf, whisperBuf] = await Promise.all([
+    const [voiceBuf, whisperBuf] = nv ? [nv, null] : await Promise.all([
       synth(M, t, { variant: v.variant, pitch: v.pitch, speed: v.speed, wordgap: 6, amplitude: 125 }),
       v.whisper ? synth(M, t, { variant: "whisperf", pitch: 0, speed: v.speed, wordgap: 6, amplitude: 110 }) : null,
     ]);
@@ -1687,6 +1838,7 @@
     const d1 = layer(voiceBuf, v.rate, 1, v.drive);
     const d2 = layer(voiceBuf, v.rate - v.rate2, v.gain2, v.drive * 2.5);
     let dur = Math.max(d1, d2);
+    if (nv && v.whisper) [-.8, .8].forEach((pan, i) => ghostWhisper(nv, .8 + i * .04, t0 + .3 + i * .15, pan, .4));
     if (whisperBuf) {
       [-.8, .8].forEach((pan, i) => {
         const w = c.createBufferSource(); w.buffer = whisperBuf; w.playbackRate.value = .8 + i * .04;
@@ -1703,10 +1855,10 @@
   }
 
   // habla con la voz del espíritu indicado (o el actual): demonio o alma en pena
-  function speak(text, who) {
+  function speak(text, who, o) {
     if (!soundOn || !text) return;
     const sp = typeof who === "string" ? (byName(who) || currentSpirit()) : (who || currentSpirit());
-    const run = sp.demon ? demonSpeak(text, sp) : soulSpeak(text, sp);
+    const run = sp.demon ? demonSpeak(text, sp, o) : soulSpeak(text, sp, o);
     run.then(ok => { if (!ok) speakBrowser(text, sp); }).catch(() => speakBrowser(text, sp));
   }
 
@@ -1763,7 +1915,7 @@
   function armAudio() {
     if (armed || !soundOn) return;
     armed = true;
-    ensureAudio(); unlockSpeech(); loadRecs(); startDrone();
+    ensureAudio(); unlockSpeech(); loadRecs(); startDrone(); warmVoz();
     clearTimeout(ambientTimer);
     ambientTimer = setTimeout(ambientLoop, 6000);
     setTimeout(loadMeSpeak, 1200); // la voz pesa unos MB: se carga en segundo plano
@@ -1889,9 +2041,11 @@
     if (soundOn) { ensureAudio(); unlockSpeech(); }
     const q = question.value.trim();
     const r = decide();
+    const said0 = r.text === "SÍ" ? "sí" : r.text === "NO" ? "no" : r.text;
+    prepareVoice(said0); // se genera mientras el espíritu deletrea
     await enterSeance();
     const said = await spell(r.text);
-    speak(r.text === "SÍ" ? "sí" : r.text === "NO" ? "no" : r.text);
+    speak(said0);
     const bye = pos["ADIÓS"];
     moveTo(bye, 0);
     await sleep(900);
@@ -3127,7 +3281,56 @@
     if (!soundOn) soundBtn.click();
     armAudio(); ensureAudio(); unlockSpeech();
     const sp = customSpirit || currentSpirit();
-    speak(sp.demon ? "Soy " + sp.name : "Me llamo " + sp.name, sp);
+    const t = sp.demon ? "Soy " + sp.name : "Me llamo " + sp.name;
+    if (neural.on && NEURAL[neural.pack].m.mms && genderOf(sp) === "m") spHint.textContent = "Generando la voz chilena… la primera vez puede tardar hasta un minuto.";
+    speak(t, sp, { patient: true });
+    if (neural.on) setTimeout(paintSp, 4000);
+  });
+
+  /* ---------- panel: voz realista ---------- */
+  const vozPack = document.getElementById("vozPack"), vozGet = document.getElementById("vozGet");
+  const vozOn = document.getElementById("vozOn"), vozHint = document.getElementById("vozHint");
+  const VOZ_KEY = "almas-voz";
+  const VOZ_IDLE = "Se descarga una sola vez (mejor con wifi) y queda guardada en el teléfono.";
+  async function vozReady(pack) { return (await Promise.all(packFiles(pack).map(isCached))).every(Boolean); }
+  function saveVoz() { try { localStorage.setItem(VOZ_KEY, JSON.stringify({ pack: vozPack.value, on: vozOn.checked })); } catch (e) {} }
+  async function refreshVoz() {
+    const pack = vozPack.value, ready = window.caches && window.Worker ? await vozReady(pack) : false;
+    if (pack !== vozPack.value) return;
+    if (neural.pack !== (ready ? pack : null)) vozCache.clear();
+    vozGet.hidden = ready; vozOn.disabled = !ready;
+    neural.pack = ready ? pack : null;
+    neural.on = ready && vozOn.checked;
+    vozHint.textContent = !ready ? VOZ_IDLE : neural.on ? "Voz realista lista: el espíritu habla con voz humana." : "Voz descargada. Marca la casilla para usarla.";
+    if (neural.on && armed) warmVoz();
+  }
+  // deja los modelos cargados en los procesos de voz para que la primera frase no demore
+  function warmVoz() {
+    if (!neural.on || !neural.pack) return;
+    const P = NEURAL[neural.pack], paths = ["m", "mFast", "f"].map(k => P[k]).filter(v => v && !v.mms).map(v => v.path);
+    vozWorker("piper").call({ kind: "warm", paths: [...new Set(paths)], prio: 9 }).catch(() => {});
+    if (P.m.mms) vozWorker("mms").call({ kind: "warm", mms: true, prio: 9 }).catch(() => {});
+  }
+  try { const sv = JSON.parse(localStorage.getItem(VOZ_KEY) || "null"); if (sv && NEURAL[sv.pack]) { vozPack.value = sv.pack; vozOn.checked = !!sv.on; } } catch (e) {}
+  refreshVoz();
+  vozPack.addEventListener("change", () => { saveVoz(); refreshVoz(); });
+  vozOn.addEventListener("change", () => { saveVoz(); refreshVoz(); });
+  vozGet.addEventListener("click", async () => {
+    if (!window.caches) { vozHint.textContent = "Este navegador no permite guardar la voz."; return; }
+    const pack = vozPack.value, total = (NEURAL[pack].mb + 18.7) * 1e6;
+    vozCache.clear();
+    let got = 0;
+    const tick = n => { got += n; vozHint.textContent = "Descargando la voz… " + Math.min(99, Math.round(got / total * 100)) + " %. No cierres la app."; };
+    vozGet.disabled = true; vozPack.disabled = true;
+    try {
+      if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+      for (const url of packFiles(pack)) await cachedFetch(url, tick);
+      vozOn.checked = true; saveVoz();
+      await refreshVoz();
+    } catch (e) {
+      console.warn("voz realista:", e);
+      vozHint.textContent = "No se pudo descargar la voz. Revisa la conexión e inténtalo de nuevo.";
+    } finally { vozGet.disabled = false; vozPack.disabled = false; }
   });
 
   /* ---------- presentes escritos por el médium ---------- */
@@ -3238,6 +3441,7 @@
     clearTimeout(pendingCall);
     callDue = { at: Date.now() + ms, msg: msg || spectralMessage(), ghost: ghost || currentSpirit().name };
     saveDue();
+    prepareVoice(callDue.msg, byName(callDue.ghost), PRIO.call);
     pendingCall = setTimeout(fireDue, ms);
   }
   function fireDue() {
@@ -3418,15 +3622,19 @@
     const who = Math.random() < .45 ? personalLine() : null;
     return who || (Math.random() < .5 ? drawLine(linesOf(currentSpirit())) : sayBag.pop());
   }
+  let nextSay = null; // la próxima frase se elige y se genera antes de que toque
   function scheduleSaying(ms) {
     clearTimeout(sayTimer);
     sayTimer = setTimeout(spontaneous, ms);
+    // solo si la voz chilena está desocupada, para no atrasar una respuesta de la tabla
+    if (neural.on && !(workers.mms && workers.mms.pending())) { nextSay = nextSaying(); prepareVoice(nextSay, null, PRIO.say); }
   }
   function spontaneous(force, forcedText) {
     // no interrumpe una respuesta, una llamada, la cámara ni la pantalla negra
     const quiet = busy || call || !blackout.hidden || (spec && spectools.hidden) || cam;
     if (!force && (!saysOn.checked || !soundOn || !armed || quiet)) { scheduleSaying(rnd(12000, 20000)); return; }
-    const text = forcedText || nextSaying();
+    const text = forcedText || nextSay || nextSaying();
+    if (!forcedText) nextSay = null;
     SFX.susurro();
     setTimeout(() => {
       speak(text);

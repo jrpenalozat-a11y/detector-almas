@@ -1,4 +1,16 @@
-La voz de los espíritus (voz/mespeak.js) es meSpeak 1.9.6, una versión para navegador
-de eSpeak, distribuida bajo la licencia GNU General Public License v3 (GPL-3.0).
-  meSpeak: https://www.masswerk.at/mespeak/
-  eSpeak:  https://espeak.sourceforge.net/
+Voces del espíritu
+
+1) Voz de respaldo (voz/mespeak.js): meSpeak 1.9.6, versión para navegador de eSpeak,
+   licencia GNU General Public License v3 (GPL-3.0).
+     https://www.masswerk.at/mespeak/  ·  https://espeak.sourceforge.net/
+
+2) Voz realista (se descarga desde el panel del médium; no viene en este repositorio):
+   - Voz chilena de hombre: ylacombe/mms-spa-finetuned-chilean-monospeaker
+     (MMS/VITS afinado con el dataset de habla chilena de Google), licencia CC BY-NC 4.0
+     (solo uso no comercial).
+     https://huggingface.co/ylacombe/mms-spa-finetuned-chilean-monospeaker
+   - Voces Piper (https://github.com/rhasspy/piper, https://huggingface.co/rhasspy/piper-voices):
+       es_MX-claude-high (mujer, México) — Apache-2.0
+       es_MX-ald-x_low (hombre, México) — Unlicense
+       es_ES-sharvard-medium (hombre y mujer, España) — CC BY 3.0
+   - Motor: onnxruntime-web (MIT) y el fonetizador piper-wasm de Diffusion Studio (eSpeak-ng, GPL-3.0).
