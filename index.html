@@ -637,13 +637,20 @@
       <li>Después de cada respuesta la petición se borra sola: para la siguiente pregunta hay que escribirla entera otra vez (y ahí puedes meter una nueva respuesta secreta). Si alguien pregunta sin la petición completa, nadie responde.</li>
       <li>Sin respuesta secreta, el espíritu esquiva la pregunta con una de sus 55 frases al azar (algunas exigen hablar con Ricardo).</li>
       <li>Respuesta de sí o no: toca una vez la palabra «Sí» o «No» del tablero. Parpadea un instante y la próxima respuesta será esa. Toca de nuevo la misma palabra para cancelar. Esto tiene prioridad sobre todo lo demás.</li>
-      <li>Con el sonido encendido, el espíritu dice la respuesta en voz alta con voz de ultratumba.</li>
+      <li>Con el sonido encendido, el espíritu dice la respuesta en voz alta con voz de ultratumba. Los sonidos de la casa (pasos, puertas, golpes, llantos, gritos lejanos, susurros) son grabaciones reales; los lejanos suenan como si vinieran de otra pieza.</li>
       <li>Espíritus: en cada sesión llega uno de 87 (49 demonios con sus propias frases, 30 almas en pena y 8 niños). Cada uno tiene su propia voz. Al pulsar «Cerrar sesión» llega otro.</li>
+      <li>Presentes (más abajo): escribe los nombres de los que juegan, separados por coma. El espíritu los nombra con frases como «Camila, te tiemblan las manos» o «Pedro, no le sueltes la mano a Camila»: en casi la mitad de sus respuestas en la tabla, en la llamada fantasma, en la cámara y cuando habla solo, y a veces los susurra. «Que nombre a alguien ahora» lo dispara en el momento. Los nombres quedan guardados en el teléfono.</li>
       <li>Nombre del espíritu (más abajo): escribe el nombre que quieras (por ejemplo «Doña Rosa» o el de alguien que la víctima conozca) y desde ese momento el espíritu es ese, en la tabla, el radar, la llamada y la cámara. La app reconoce si el nombre es de mujer o de hombre y le pone esa voz; si se equivoca, toca el botón de la voz para cambiarla. Queda guardado en el teléfono aunque cierres la sesión. Borra el nombre para volver a espíritus al azar.</li>
       <li>Llamada fantasma: al pulsar «Cerrar sesión» la pantalla se pone negra como si la app se apagara. A los 8–14 segundos entra una llamada de un número privado. Si bloquean el teléfono o cierran la app, la llamada entra apenas vuelvan a abrirla. Al contestar suena bajito por el auricular, con sonido de teléfono (hay que acercarlo al oído) y al final grita a todo volumen; con el botón «Altavoz» se escucha fuerte para todos. Se oye estática y respiración, y el espíritu dice la respuesta con su voz (la secreta si la escribiste antes de cerrar). Si la rechazan, vuelve a sonar; a la segunda se contesta sola. Para salir de la pantalla negra sin esperar, mantenla apretada 3 segundos.</li>
       <li>Cámara espectral: pulsa «Tomar foto» o «Grabar video» (graba hasta 8 segundos, con sonido). La cámara se ve normal, sin filtros; con «Visión nocturna: sí» se ve como cámara infrarroja de vigilancia. Apunta a la parte oscura de la pieza. En el resultado aparece una figura translúcida que calza con la escena: de pie, cruzando o asomada por un borde, con el fondo deformado a través de ella. En el video dura 1–2 segundos a mitad de la toma, con un par de cuadros cortados. No sale ningún texto ni aviso: deja que la descubran solos. «Guardar» entrega el archivo con nombre de cámara (IMG_… o VID_…) para mostrarlo o mandarlo por WhatsApp. Si la figura no convence, «Otra aparición» genera otra sobre la misma toma. El tipo de figura depende del espíritu de la sesión (dama, hombre, niño o sombra).</li>
       <li>Radar: pulsa «Escanear el sector» (o escribe <code>..</code> en la pregunta). Escribe los nombres de los presentes separados por coma (o solo cuántos son), pulsa «Ubicar en el radar» y toca la pantalla del radar donde está cada uno. Con nombres, el espíritu los menciona en sus respuestas y dice junto a quién está. Tú eres el centro; arriba es hacia donde apunta el teléfono. Al rato aparece un espíritu que cambia de posición y dice su nombre en la tabla.</li>
     </ol>
+    <p class="sb-title">Presentes</p>
+    <div class="spname">
+      <input type="text" id="presentes" placeholder="Camila, Pedro, Tía Rosa" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Nombres de los presentes">
+      <p class="sp-hint" id="presHint">Escribe los nombres de los que están jugando, separados por coma.</p>
+      <div class="soundboard"><button type="button" id="sayName">Que nombre a alguien ahora</button></div>
+    </div>
     <p class="sb-title">Nombre del espíritu</p>
     <div class="spname">
       <input type="text" id="spName" placeholder="Ej.: Rosa, Don Aurelio, Sor Clara" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Nombre del espíritu">
@@ -892,24 +899,60 @@
     return bag.pop();
   }
 
-  // frases con el nombre de alguien presente (se usan si el radar tiene nombres)
+  // frases con el nombre de alguien presente (panel del médium o radar)
   const PERSONAL = [
-    "{n} no mires atrás",
-    "{n} sabe por qué vine",
-    "{n} tiene algo mío",
-    "Pregúntale a {n}",
-    "Estoy detrás de {n}",
-    "{n} me está escuchando",
-    "{n} no duermas esta noche",
-    "{n} cuenta hasta tres",
-    "{n} ya me vio antes",
-    "Esta noche visito a {n}",
-    "{n} deja la puerta abierta",
-    "Que {n} apague la luz",
-    "{n} no mires el espejo",
+    "{n}, sé que me estás mirando",
+    "{n}, tú no crees en mí. Todavía",
+    "{n}, te tiemblan las manos",
+    "{n}, ¿de qué te reíste recién?",
+    "{n}, no te des vuelta ahora",
+    "{n}, anoche estuve en tu pieza",
+    "{n}, no eres tú quien mueve la tabla",
+    "{n}, alguien de tu familia me conoció",
+    "{n}, cuando apagues la luz voy a estar ahí",
+    "{n}, ese frío en la nuca soy yo",
+    "{n}, no le cuentes a nadie lo que viste",
+    "{n}, sé lo que estás pensando",
+    "{n}, respira más despacio",
+    "{n}, deja la puerta cerrada esta noche",
+    "Pregúntale a {n} qué soñó anoche",
+    "{n} me dejó entrar",
     "Vine por {n}",
-    "{n} sueña conmigo",
+    "{n}, no duermas mirando la pared",
+    "{n}, mira la esquina a tu izquierda",
+    "{n}, llevo rato parado detrás de ti",
   ];
+  // frases que nombran a dos de los presentes
+  const PAIR = [
+    "{n}, no le sueltes la mano a {m}",
+    "{m} no te dijo la verdad, {n}",
+    "{n}, ¿quién está sentado entre tú y {m}?",
+    "{n}, pregúntale a {m} por qué me llamó",
+    "{m} ya me vio. {n}, tú todavía no",
+    "{n} y {m}, uno de los dos se va conmigo",
+    "{n}, {m} está más cerca de mí que tú",
+    "{m}, no fue {n} quien te tocó el hombro",
+    "{n}, mírale los ojos a {m}. Yo ya estoy ahí",
+  ];
+  let panelNames = []; // nombres escritos en el panel del médium
+  function presentNames() {
+    const seen = new Set(), out = [];
+    panelNames.concat(living.filter(b => b.name).map(b => b.name)).forEach(n => {
+      const k = n.toLowerCase(); if (!seen.has(k)) { seen.add(k); out.push(n); }
+    });
+    return out;
+  }
+  // una frase que nombra a uno o dos de los presentes (null si no hay nombres)
+  function personalLine() {
+    const names = presentNames();
+    if (!names.length) return null;
+    if (names.length > 1 && Math.random() < .45) {
+      const a = pick(names); let b = pick(names);
+      while (b === a) b = pick(names);
+      return pick(PAIR).replace("{n}", a).replace("{m}", b);
+    }
+    return pick(PERSONAL).replace("{n}", pick(names));
+  }
   let forced = null; // "SÍ" o "NO" elegido en secreto tocando el tablero
 
   function decide() {
@@ -918,13 +961,11 @@
     if (!q) return { text: "Pregunta algo", kind: "refuse" };
     if (forced) { const t = forced; forced = null; return { text: t, kind: Math.random() < .5 ? "omen" : "refuse" }; }
     if (secret) return { text: secret, kind: "true" };
-    const names = living.filter(b => b.name).map(b => b.name);
-    const cs = currentSpirit(), r = Math.random();
-    // casi la mitad de las veces habla con su propia voz: amenaza si es demonio, pide ayuda si es alma
-    if (r < .45) return { text: drawLine(linesOf(cs)), kind: cs.demon ? (Math.random() < .6 ? "omen" : "refuse") : "refuse" };
-    if (names.length && r < .7) {
-      return { text: pick(PERSONAL).replace("{n}", pick(names)), kind: Math.random() < .5 ? "omen" : "refuse" };
-    }
+    const cs = currentSpirit(), r = Math.random(), named = presentNames().length > 0;
+    // con nombres de los presentes, casi la mitad de las veces se dirige a alguien por su nombre
+    if (named && r < .45) return { text: personalLine(), kind: Math.random() < .5 ? "omen" : "refuse" };
+    // si no, habla con su propia voz: amenaza si es demonio, pide ayuda si es alma
+    if (r < (named ? .75 : .45)) return { text: drawLine(linesOf(cs)), kind: cs.demon ? (Math.random() < .6 ? "omen" : "refuse") : "refuse" };
     return { text: nextEvasive(), kind: Math.random() < .4 ? "omen" : "refuse" };
   }
 
@@ -939,27 +980,36 @@
     if (ctx.state === "suspended") ctx.resume();
     return ctx;
   }
+  // fondo: el ruido de una pieza en silencio (aire, casa) y un viento lejano afuera
   function startDrone() {
     const c = ensureAudio(); if (!c || drone) return;
-    const g = c.createGain(); g.gain.value = 0; g.connect(dest());
-    const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 320; lp.connect(g);
-    const oscs = [55, 55.7, 82.4, 110.3].map((f, i) => {
-      const o = c.createOscillator(); o.type = i % 2 ? "sawtooth" : "triangle"; o.frequency.value = f;
-      o.connect(lp); o.start(); return o;
+    const out = dest();
+    const g = c.createGain(); g.gain.value = 0; g.connect(out);
+    const n = c.createBufferSource(); n.buffer = noiseBuf; n.loop = true;
+    const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 170;
+    n.connect(lp); lp.connect(g); n.start();
+    g.gain.linearRampToValueAtTime(.06, c.currentTime + 3);
+    const d = drone = { gains: [g], srcs: [n] };
+    loadRecs().then(() => {
+      const B = bufs["viento-2"];
+      if (drone !== d || !B) return;
+      const w = c.createBufferSource(); w.buffer = B.b; w.loop = true; w.loopStart = .4; w.loopEnd = 7.4;
+      const wl = c.createBiquadFilter(); wl.type = "lowpass"; wl.frequency.value = 650; // se oye tras la ventana
+      const wg = c.createGain(); wg.gain.value = 0;
+      w.connect(wl); wl.connect(wg); wg.connect(out); w.start();
+      wg.gain.linearRampToValueAtTime(.12 * B.norm, c.currentTime + 4);
+      d.gains.push(wg); d.srcs.push(w);
     });
-    const lfo = c.createOscillator(); lfo.frequency.value = .07;
-    const lg = c.createGain(); lg.gain.value = 140; lfo.connect(lg); lg.connect(lp.frequency); lfo.start();
-    g.gain.linearRampToValueAtTime(.09, c.currentTime + 3);
-    drone = { g, oscs, lfo };
   }
   function stopDrone() {
     if (!drone || !ctx) return;
     const d = drone; drone = null;
-    d.g.gain.linearRampToValueAtTime(0, ctx.currentTime + 1);
-    setTimeout(() => { d.oscs.forEach(o => o.stop()); d.lfo.stop(); }, 1100);
+    d.gains.forEach(g => g.gain.linearRampToValueAtTime(0, ctx.currentTime + 1));
+    setTimeout(() => d.srcs.forEach(x => { try { x.stop(); } catch (e) {} }), 1100);
   }
   function knock() {
     if (!soundOn || !ctx) return;
+    if (playRec("toque-madera", { from: .3, to: .62, vol: .55, wet: .12, pan: rnd(-.2, .2), rate: rnd(.92, 1.05) })) return;
     const o = ctx.createOscillator(), g = ctx.createGain();
     o.type = "sine"; o.frequency.setValueAtTime(140, ctx.currentTime);
     o.frequency.exponentialRampToValueAtTime(48, ctx.currentTime + .18);
@@ -975,6 +1025,7 @@
   }
   function heartbeat(times) {
     if (!soundOn || !ctx) return;
+    if (playRec("latido", { from: .3, to: .3 + times * 1.6, vol: .75, wet: .04, pan: 0, fadeOut: .15 })) return;
     for (let i = 0; i < times; i++) {
       [0, .22].forEach((off, k) => {
         const t = ctx.currentTime + i * .95 + off;
@@ -987,6 +1038,7 @@
   }
   function scream() {
     if (!soundOn || !ctx) return;
+    if (playRec("susto", { from: .15, to: 2.9, vol: 1, wet: .3, pan: 0 })) return;
     const t = ctx.currentTime, len = 1.4;
     const buf = ctx.createBuffer(1, ctx.sampleRate * len, ctx.sampleRate);
     const data = buf.getChannelData(0);
@@ -1317,6 +1369,108 @@
     susurrosCruzados() { whisperWords(null, -1); setTimeout(() => whisperWords(null, 1), 700); },
   };
 
+  /* ---------- sonidos grabados de verdad ----------
+     Grabaciones de freesound.org con licencia CC0 (ver sonidos/CREDITOS.txt). Se usa solo el tramo útil
+     de cada una, con el volumen nivelado, lejanía (filtro de «otra pieza») y eco de habitación.
+     Si todavía no cargan, suena la versión sintetizada. */
+  const REC_FILES = ["susurro-1", "susurro-2", "puerta-1", "puerta-2", "golpes-puerta", "toque-madera", "pasos-1", "pasos-2",
+    "caja-musica", "lamento-1", "lamento-2", "grunido-1", "grunido-2", "campana", "viento-1", "viento-2", "respiracion-1",
+    "respiracion-2", "chirrido-silla", "chirrido-reja", "estatica", "rasguno", "risa-nino", "risa-nina", "risa-mujer",
+    "grito-mujer-1", "grito-mujer-2", "grito-hombre", "llanto-1", "llanto-2", "llanto-bebe", "susto", "latido"];
+  const bufs = {};
+  let recLoad = null;
+  function loadRecs() {
+    if (recLoad) return recLoad;
+    const c = ensureAudio(); if (!c) return Promise.resolve();
+    recLoad = Promise.all(REC_FILES.map(async n => {
+      try {
+        const ab = await (await fetch("sonidos/" + n + ".mp3")).arrayBuffer();
+        const b = await new Promise((res, rej) => c.decodeAudioData(ab, res, rej));
+        let pk = 0;
+        for (let ch = 0; ch < b.numberOfChannels; ch++) { const d = b.getChannelData(ch); for (let i = 0; i < d.length; i += 3) { const v = Math.abs(d[i]); if (v > pk) pk = v; } }
+        bufs[n] = { b, norm: Math.min(8, .8 / (pk || 1)) }; // todas al mismo nivel de pico
+      } catch (e) {}
+    }));
+    return recLoad;
+  }
+  // o: from/to (s), vol, pan, panTo (se desplaza), wet (eco), far (Hz: suena tras una pared), rate, delay, fadeIn/fadeOut
+  function playRec(file, o = {}) {
+    const c = live(), B = bufs[file];
+    if (!c || !B) return false;
+    const t = c.currentTime + (o.delay || 0), rate = o.rate || 1;
+    const from = Math.max(0, o.from || 0), to = Math.min(B.b.duration, o.to || B.b.duration);
+    const dur = (to - from) / rate;
+    if (dur <= .05) return false;
+    const src = c.createBufferSource(); src.buffer = B.b; src.playbackRate.value = rate;
+    let node = src;
+    if (o.far) { const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = o.far; lp.Q.value = .5; node.connect(lp); node = lp; }
+    const g = c.createGain(), vol = (o.vol == null ? 1 : o.vol) * B.norm;
+    const fi = Math.min(o.fadeIn == null ? .04 : o.fadeIn, dur / 3), fo = Math.min(o.fadeOut == null ? .35 : o.fadeOut, dur / 2);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + fi);
+    g.gain.setValueAtTime(vol, t + dur - fo); g.gain.linearRampToValueAtTime(0, t + dur);
+    node.connect(g);
+    let out = g;
+    if (c.createStereoPanner) {
+      const pn = c.createStereoPanner(), p0 = o.pan == null ? rnd(-.8, .8) : o.pan;
+      pn.pan.setValueAtTime(p0, t);
+      if (o.panTo != null) pn.pan.linearRampToValueAtTime(o.panTo, t + dur);
+      g.connect(pn); out = pn;
+    }
+    out.connect(master);
+    const w = c.createGain(); w.gain.value = o.wet == null ? .35 : o.wet; out.connect(w); w.connect(reverb);
+    src.start(t, from, (to - from) + .02);
+    return true;
+  }
+  // tramo al azar de largo len dentro de [a, b]
+  const slice = (a, b, len) => { const f = rnd(a, Math.max(a, b - len)); return { from: f, to: Math.min(b, f + len) }; };
+  const side = () => (Math.random() < .5 ? -1 : 1) * rnd(.55, 1);
+  const REAL = {
+    susurro: () => Math.random() < .5
+      ? playRec("susurro-1", { from: .6, to: 3.4, vol: .5, pan: side(), wet: .3 })
+      : playRec("susurro-2", Object.assign(slice(1.1, 7.2, 3), { vol: .55, pan: side(), wet: .35 })),
+    susurrosCruzados: () => playRec("susurro-2", Object.assign(slice(1.1, 7.2, 4), { vol: .5, pan: -.95, wet: .3 }))
+      && playRec("susurro-1", { from: .6, to: 3.4, vol: .45, pan: .95, wet: .3, delay: .7 }),
+    puerta: () => Math.random() < .5
+      ? playRec("puerta-2", { from: .1, to: 5.5, vol: .7, far: 3800, wet: .45 })
+      : playRec("puerta-1", Object.assign(slice(1, 14.6, 5.5), { vol: .9, far: 4200, wet: .45 })),
+    golpes: () => playRec("golpes-puerta", { from: 0, to: rnd(1.6, 3), vol: .85, far: 1600, wet: .55, fadeOut: .2 }), // tras la pared
+    pasos: () => { const s0 = side(); return playRec("pasos-1", Object.assign(slice(2, 16.3, 5), { vol: .9, pan: s0, panTo: s0 * .15, far: 2600, wet: .4, fadeIn: .8 })); },
+    cajaDeMusica: () => playRec("caja-musica", Object.assign(slice(.2, 17.4, 9), { vol: .45, far: 5000, wet: .6, rate: .96, fadeIn: .6, fadeOut: 1.2 })),
+    lamento: () => playRec(pick(["lamento-1", "lamento-2"]), { vol: .55, far: 3500, wet: .75, rate: rnd(.9, 1) }),
+    grunido: () => Math.random() < .5
+      ? playRec("grunido-1", { from: .9, to: 4.9, vol: .75, wet: .3, rate: rnd(.88, .98), pan: rnd(-.4, .4) })
+      : playRec("grunido-2", { from: .3, to: 3.7, vol: .7, wet: .3, rate: .9, pan: rnd(-.4, .4) }),
+    campana: () => playRec("campana", { from: 0, to: 5.2, vol: .4, far: 2200, wet: .7, pan: rnd(-.6, .6) }),
+    viento: () => playRec(pick(["viento-1", "viento-2"]), { vol: .55, wet: .25, fadeIn: 1, fadeOut: 1.5 }),
+    respiracion: () => Math.random() < .5
+      ? playRec("respiracion-1", { from: 0, to: 4.2, vol: .45, pan: (Math.random() < .5 ? -1 : 1) * .95, wet: .05 }) // pegada a la oreja
+      : playRec("respiracion-2", { from: 0, to: 6, vol: .6, pan: (Math.random() < .5 ? -1 : 1) * .95, wet: .05 }),
+    chirrido: () => Math.random() < .5
+      ? playRec("chirrido-silla", { from: 0, to: 1.1, vol: .55, wet: .3 })
+      : playRec("chirrido-reja", { from: .6, to: 5.1, vol: .55, far: 4000, wet: .5 }),
+    estatica: () => playRec("estatica", Object.assign(slice(0, 10, rnd(.7, 1.3)), { vol: .3, wet: .05, pan: rnd(-.3, .3), fadeIn: .01, fadeOut: .05 })),
+    rasguno: () => playRec("rasguno", Object.assign(slice(.5, 8.2, rnd(.35, .6)), { vol: .4, wet: .08, pan: rnd(-.2, .2), fadeIn: .02, fadeOut: .1 })),
+    risa: () => {
+      const cs = currentSpirit();
+      if (cs.child) return cs.g === "f" ? playRec("risa-nina", { from: .1, to: 1.55, vol: .45, far: 5000, wet: .6 })
+                                         : playRec("risa-nino", { from: .3, to: 4.6, vol: .45, far: 5000, wet: .6 });
+      return playRec("risa-mujer", { from: .6, to: 3.8, vol: .5, far: 4500, wet: .6 });
+    },
+    gritoLejano: () => playRec(pick(["grito-mujer-1", "grito-mujer-2"]), { from: .3, to: 4, vol: .45, far: 1300, wet: 1 }), // desde otra pieza
+    alaridoLejano: () => playRec("grito-hombre", { from: 0, to: 3.2, vol: .4, far: 1000, wet: 1 }),
+    llanto: () => {
+      if (currentSpirit().child) return playRec("llanto-bebe", { from: .1, to: 6.8, vol: .55, far: 3000, wet: .8 });
+      return Math.random() < .5
+        ? playRec("llanto-1", Object.assign(slice(.3, 18.3, 5), { vol: .5, far: 3000, wet: .8, fadeIn: .5 }))
+        : playRec("llanto-2", { from: 2.6, to: 5.4, vol: .45, far: 3000, wet: .8 });
+    },
+  };
+  // cada sonido usa su grabación; si aún no carga, la versión sintetizada
+  Object.keys(REAL).forEach(k => {
+    const synth = SFX[k];
+    SFX[k] = (...a) => { if (!REAL[k]()) synth(...a); };
+  });
+
   // frases que se susurran solas
   const WHISPERS_SAID = [
     "ven", "estoy aquí", "detrás de ti", "no te vayas", "te estoy mirando", "ayúdame", "no mires",
@@ -1325,7 +1479,7 @@
   ];
   async function whisperWords(text, side) {
     const c = live(); if (!c) return;
-    const names = living.filter(b => b.name).map(b => b.name);
+    const names = presentNames();
     if (!text) text = names.length && Math.random() < .35 ? pick(names) + (Math.random() < .5 ? "" : ", " + pick(["ven", "mírame", "estoy aquí"])) : pick(WHISPERS_SAID);
     const M = await loadMeSpeak();
     if (!M || !live()) { SFX.susurro(); return; } // sin la voz, un susurro sin palabras
@@ -1609,7 +1763,7 @@
   function armAudio() {
     if (armed || !soundOn) return;
     armed = true;
-    ensureAudio(); unlockSpeech(); startDrone();
+    ensureAudio(); unlockSpeech(); loadRecs(); startDrone();
     clearTimeout(ambientTimer);
     ambientTimer = setTimeout(ambientLoop, 6000);
     setTimeout(loadMeSpeak, 1200); // la voz pesa unos MB: se carga en segundo plano
@@ -1621,7 +1775,7 @@
     const b = e.target.closest("button[data-sfx]"); if (!b) return;
     if (!soundOn) soundBtn.click();
     ensureAudio();
-    SFX[b.dataset.sfx]();
+    loadRecs().then(() => SFX[b.dataset.sfx]());
   });
 
   /* ---------- sesión ---------- */
@@ -2472,9 +2626,9 @@
   function spectralMessage() {
     const { secret } = derive(keys);
     if (secret) return secret;
-    const names = living.filter(b => b.name).map(b => b.name);
+    const who = Math.random() < .6 ? personalLine() : null;
+    if (who) return who;
     if (Math.random() < .5) return drawLine(linesOf(currentSpirit()));
-    if (names.length && Math.random() < .6) return pick(PERSONAL).replace("{n}", pick(names));
     return nextEvasive();
   }
 
@@ -2976,6 +3130,26 @@
     speak(sp.demon ? "Soy " + sp.name : "Me llamo " + sp.name, sp);
   });
 
+  /* ---------- presentes escritos por el médium ---------- */
+  const presIn = document.getElementById("presentes"), presHint = document.getElementById("presHint");
+  const PRES_KEY = "almas-presentes";
+  function readPresent() {
+    panelNames = presIn.value.split(/[,;\n]+/).map(x => x.trim().replace(/\s+/g, " ").slice(0, 30)).filter(Boolean).slice(0, 12);
+    presHint.textContent = panelNames.length
+      ? "El espíritu conoce a: " + panelNames.join(", ") + "."
+      : "Escribe los nombres de los que están jugando, separados por coma.";
+  }
+  try { presIn.value = localStorage.getItem(PRES_KEY) || ""; } catch (e) {}
+  readPresent();
+  presIn.addEventListener("input", () => { readPresent(); try { localStorage.setItem(PRES_KEY, presIn.value); } catch (e) {} });
+  document.getElementById("sayName").addEventListener("click", () => {
+    const t = personalLine();
+    if (!t) { presHint.textContent = "Primero escribe al menos un nombre."; presIn.focus(); return; }
+    if (!soundOn) soundBtn.click();
+    armAudio();
+    spontaneous(true, t);
+  });
+
   /* ---------- gestos secretos del médium ---------- */
   const medium = document.getElementById("medium");
   const sun = document.getElementById("sun");
@@ -3240,21 +3414,19 @@
       sayBag = SAYINGS.slice();
       for (let i = sayBag.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [sayBag[i], sayBag[j]] = [sayBag[j], sayBag[i]]; }
     }
-    let t = Math.random() < .5 ? drawLine(linesOf(currentSpirit())) : sayBag.pop();
-    // a veces se dirige a alguien presente por su nombre
-    const names = living.filter(b => b.name).map(b => b.name);
-    if (names.length && Math.random() < .3) t = pick(names) + ". " + t;
-    return t;
+    // con nombres de los presentes, casi la mitad de las veces le habla a alguien
+    const who = Math.random() < .45 ? personalLine() : null;
+    return who || (Math.random() < .5 ? drawLine(linesOf(currentSpirit())) : sayBag.pop());
   }
   function scheduleSaying(ms) {
     clearTimeout(sayTimer);
     sayTimer = setTimeout(spontaneous, ms);
   }
-  function spontaneous(force) {
+  function spontaneous(force, forcedText) {
     // no interrumpe una respuesta, una llamada, la cámara ni la pantalla negra
     const quiet = busy || call || !blackout.hidden || (spec && spectools.hidden) || cam;
     if (!force && (!saysOn.checked || !soundOn || !armed || quiet)) { scheduleSaying(rnd(12000, 20000)); return; }
-    const text = nextSaying();
+    const text = forcedText || nextSaying();
     SFX.susurro();
     setTimeout(() => {
       speak(text);

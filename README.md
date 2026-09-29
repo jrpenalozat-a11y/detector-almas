@@ -10,3 +10,4 @@ funciona sin conexión una vez abierta.
 - **Trucos:** mantén apretado el ☼ del tablero 2 segundos para abrir el panel del médium.
 
 La voz (`voz/mespeak.js`) es meSpeak/eSpeak, licencia GPL-3.0 (ver `LICENSE-voz.txt`).
+Los sonidos de `sonidos/` son grabaciones de freesound.org con licencia CC0 (ver `sonidos/CREDITOS.txt`).
