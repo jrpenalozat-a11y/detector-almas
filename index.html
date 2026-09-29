@@ -315,6 +315,16 @@
   .sb-check { display: flex; gap: 10px; align-items: flex-start; font-size: .95rem; text-transform: none; letter-spacing: 0; font-family: var(--body); font-weight: 400; color: var(--bone); margin-bottom: 10px; }
   .sb-check input { margin-top: .3em; accent-color: var(--ember); }
   .sb-title { margin: 14px 0 8px; font-family: var(--type); font-weight: 700; font-size: .85rem; letter-spacing: .08em; text-transform: uppercase; color: var(--bone-dim); }
+  .spname { display: flex; flex-direction: column; gap: 8px; }
+  .sp-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .sp-row select, .sp-row button {
+    flex: 1 1 150px; font-family: var(--type); font-size: .85rem; color: var(--bone);
+    background: rgba(21,16,26,.9); border: 1px solid #3a2a2e; border-radius: 2px; padding: 10px 8px;
+    text-transform: none; letter-spacing: .02em;
+  }
+  .sp-row button[aria-pressed="true"] { border-color: var(--candle); color: var(--candle); }
+  .sp-hint { margin: 0; font-size: .95rem; color: var(--bone-dim); font-style: italic; }
+  .sp-hint b { color: var(--ember); font-style: normal; }
   .soundboard { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
   .soundboard button {
     background: rgba(21,16,26,.9); color: var(--bone); border: 1px solid #3a2a2e;
@@ -629,10 +639,25 @@
       <li>Respuesta de sí o no: toca una vez la palabra «Sí» o «No» del tablero. Parpadea un instante y la próxima respuesta será esa. Toca de nuevo la misma palabra para cancelar. Esto tiene prioridad sobre todo lo demás.</li>
       <li>Con el sonido encendido, el espíritu dice la respuesta en voz alta con voz de ultratumba.</li>
       <li>Espíritus: en cada sesión llega uno de 87 (49 demonios con sus propias frases, 30 almas en pena y 8 niños). Cada uno tiene su propia voz. Al pulsar «Cerrar sesión» llega otro.</li>
+      <li>Nombre del espíritu (más abajo): escribe el nombre que quieras (por ejemplo «Doña Rosa» o el de alguien que la víctima conozca) y desde ese momento el espíritu es ese, en la tabla, el radar, la llamada y la cámara. La app reconoce si el nombre es de mujer o de hombre y le pone esa voz; si se equivoca, toca el botón de la voz para cambiarla. Queda guardado en el teléfono aunque cierres la sesión. Borra el nombre para volver a espíritus al azar.</li>
       <li>Llamada fantasma: al pulsar «Cerrar sesión» la pantalla se pone negra como si la app se apagara. A los 8–14 segundos entra una llamada de un número privado. Si bloquean el teléfono o cierran la app, la llamada entra apenas vuelvan a abrirla. Al contestar suena bajito por el auricular, con sonido de teléfono (hay que acercarlo al oído) y al final grita a todo volumen; con el botón «Altavoz» se escucha fuerte para todos. Se oye estática y respiración, y el espíritu dice la respuesta con su voz (la secreta si la escribiste antes de cerrar). Si la rechazan, vuelve a sonar; a la segunda se contesta sola. Para salir de la pantalla negra sin esperar, mantenla apretada 3 segundos.</li>
       <li>Cámara espectral: pulsa «Tomar foto» o «Grabar video» (graba hasta 8 segundos, con sonido). La cámara se ve normal, sin filtros; con «Visión nocturna: sí» se ve como cámara infrarroja de vigilancia. Apunta a la parte oscura de la pieza. En el resultado aparece una figura translúcida que calza con la escena: de pie, cruzando o asomada por un borde, con el fondo deformado a través de ella. En el video dura 1–2 segundos a mitad de la toma, con un par de cuadros cortados. No sale ningún texto ni aviso: deja que la descubran solos. «Guardar» entrega el archivo con nombre de cámara (IMG_… o VID_…) para mostrarlo o mandarlo por WhatsApp. Si la figura no convence, «Otra aparición» genera otra sobre la misma toma. El tipo de figura depende del espíritu de la sesión (dama, hombre, niño o sombra).</li>
       <li>Radar: pulsa «Escanear el sector» (o escribe <code>..</code> en la pregunta). Escribe los nombres de los presentes separados por coma (o solo cuántos son), pulsa «Ubicar en el radar» y toca la pantalla del radar donde está cada uno. Con nombres, el espíritu los menciona en sus respuestas y dice junto a quién está. Tú eres el centro; arriba es hacia donde apunta el teléfono. Al rato aparece un espíritu que cambia de posición y dice su nombre en la tabla.</li>
     </ol>
+    <p class="sb-title">Nombre del espíritu</p>
+    <div class="spname">
+      <input type="text" id="spName" placeholder="Ej.: Rosa, Don Aurelio, Sor Clara" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Nombre del espíritu">
+      <div class="sp-row">
+        <select id="spKind" aria-label="Tipo de espíritu">
+          <option value="alma">Alma en pena</option>
+          <option value="nino">Niño o niña</option>
+          <option value="demonio">Demonio</option>
+        </select>
+        <button type="button" id="spG" aria-pressed="false">Voz: hombre</button>
+        <button type="button" id="spTest">Probar la voz</button>
+      </div>
+      <p class="sp-hint" id="spHint">Sin nombre, en cada sesión llega un espíritu al azar.</p>
+    </div>
     <p class="sb-title">Llamada fantasma</p>
     <label class="sb-check"><input type="checkbox" id="callOnClose" checked> Al pulsar «Cerrar sesión», la app se apaga y a los 8–14 segundos llega la llamada</label>
     <div class="soundboard">
@@ -1315,17 +1340,17 @@
   }
   // voz de ultratumba: la voz en español más grave del teléfono, al mínimo de tono,
   // envuelta en un susurro que late con cada palabra y seguida de un eco susurrado
-  let voiceCache = null;
-  function darkVoice() {
+  // se elige una voz de hombre o de mujer según el espíritu
+  let voiceCache = {};
+  function darkVoice(fem) {
     const vs = speechSynthesis.getVoices().filter(v => /^es/i.test(v.lang));
     if (!vs.length) return null;
-    const score = v =>
-      (/(jorge|diego|pablo|enrique|carlos|juan|miguel|antonio|alvaro|álvaro|raul|raúl|andres|andrés|jaime|male|hombre|masculin)/i.test(v.name) ? 5 : 0) -
-      (/(monica|mónica|paulina|helena|laura|lucia|lucía|elvira|marisol|sabina|female|mujer|femenin)/i.test(v.name) ? 3 : 0) +
-      (v.localService ? 1 : 0);
+    const male = v => /(jorge|diego|pablo|enrique|carlos|juan|miguel|antonio|alvaro|álvaro|raul|raúl|andres|andrés|jaime|male|hombre|masculin)/i.test(v.name);
+    const female = v => /(monica|mónica|paulina|helena|laura|lucia|lucía|elvira|marisol|sabina|dalia|elena|conchita|penélope|penelope|female|mujer|femenin)/i.test(v.name);
+    const score = v => (fem ? (female(v) ? 5 : 0) - (male(v) ? 3 : 0) : (male(v) ? 5 : 0) - (female(v) ? 3 : 0)) + (v.localService ? 1 : 0);
     return vs.slice().sort((a, b) => score(b) - score(a))[0];
   }
-  if (window.speechSynthesis) speechSynthesis.onvoiceschanged = () => { voiceCache = null; };
+  if (window.speechSynthesis) speechSynthesis.onvoiceschanged = () => { voiceCache = {}; };
 
   function whisperBed() {
     const c = live(); if (!c) return null;
@@ -1389,7 +1414,9 @@
   // y distinta de los demás
   const voiceCache2 = new Map();
   function voiceOf(sp) {
-    if (voiceCache2.has(sp.name)) return voiceCache2.get(sp.name);
+    // la clave incluye género y tipo: el mismo nombre con otra voz elegida suena distinto
+    const key = sp.name + "|" + sp.g + (sp.demon ? "|d" : sp.child ? "|c" : "");
+    if (voiceCache2.has(key)) return voiceCache2.get(key);
     let h = 2166136261;
     for (const ch of sp.name) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); }
     const r = () => { h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); return ((h ^= h >>> 16) >>> 0) / 4294967296; };
@@ -1430,7 +1457,7 @@
         delay: between(.22, .45), fb: between(.2, .4),
       };
     }
-    voiceCache2.set(sp.name, v);
+    voiceCache2.set(key, v);
     return v;
   }
 
@@ -1526,17 +1553,18 @@
     if (!soundOn || !text) return;
     const sp = typeof who === "string" ? (byName(who) || currentSpirit()) : (who || currentSpirit());
     const run = sp.demon ? demonSpeak(text, sp) : soulSpeak(text, sp);
-    run.then(ok => { if (!ok) speakBrowser(text); }).catch(() => speakBrowser(text));
+    run.then(ok => { if (!ok) speakBrowser(text, sp); }).catch(() => speakBrowser(text, sp));
   }
 
-  function speakBrowser(text) {
+  function speakBrowser(text, sp) {
     if (!soundOn || !window.speechSynthesis || !text) return;
     try {
-      const v = voiceCache || (voiceCache = darkVoice());
+      const fem = !!sp && sp.g === "f", k = fem ? "f" : "m";
+      const v = voiceCache[k] || (voiceCache[k] = darkVoice(fem));
       const make = (vol, rate) => {
         const u = new SpeechSynthesisUtterance(text.toLowerCase());
         u.lang = v ? v.lang : "es-ES"; if (v) u.voice = v;
-        u.pitch = 0; u.rate = rate; u.volume = vol;
+        u.pitch = fem ? .3 : 0; u.rate = rate; u.volume = vol;
         return u;
       };
       const main = make(.95, .5), echo = make(.28, .62); // voz grave y luego su eco susurrado
@@ -1818,8 +1846,9 @@
   ).concat(
     DEMONS.map(([name, g, title, lines]) => ({ name, g, title, lines, year: null, demon: true, child: false }))
   );
-  const byName = n => SPIRITS.find(x => x.name === n) || null;
+  const byName = n => (customSpirit && customSpirit.name === n ? customSpirit : SPIRITS.find(x => x.name === n)) || null;
   // el espíritu de la sesión: responde en la tabla aunque el radar todavía no lo haya detectado
+  let customSpirit = null; // el que el médium eligió por nombre (ver «Nombre del espíritu»)
   let sessionSpirit = pick(SPIRITS);
   function currentSpirit() { return (spirit && spirit.info) || sessionSpirit; }
 
@@ -2859,6 +2888,94 @@
   });
   document.getElementById("specclose").addEventListener("click", closeSpec);
 
+  /* ---------- nombre del espíritu elegido por el médium ---------- */
+  // adivina si un nombre es de mujer o de hombre (títulos, listas y terminaciones del español)
+  const FEM_TITLES = /^(doña|dona|sor|hermana|señora|senora|señorita|senorita|sra\.?|srta\.?|tía|tia|madre|abuela|abuelita|niña|nina|la|santa|misia|madame|miss|lady)$/;
+  const MASC_TITLES = /^(don|señor|senor|sr\.?|hermano|fray|padre|tío|tio|abuelo|abuelito|niño|nino|el|san|santo|capitán|capitan|coronel|cabo|sargento|general|doctor|dr\.?|mister|sir|lord)$/;
+  const FEM_NAMES = new Set(("carmen isabel raquel pilar rocio mercedes dolores ines beatriz luz soledad consuelo rosario amparo milagros ruth rut esther ester " +
+    "abigail noemi belen sol maribel mabel nicole michelle jennifer karen lisbeth ingrid astrid yasmin jazmin flor margot nieves lourdes iris isis ivonne " +
+    "allison madison scarlett jacqueline yamileth evelyn rachel carol gladys doris miriam maite zoe chloe anais abril aylin lucero cielo rubi trinidad " +
+    "concepcion asuncion encarnacion purificacion natividad piedad caridad libertad felicidad marisol mary emily lucy nancy kelly betty ashley wendy daisy " +
+    "shirley grace alice jade anne rose claire irene adele eunice berenice salome elizabeth ruby mercy judith edith lilith agrat naamah abyzou lamashtu " +
+    "genesis leonor aurora estefani estefany estrella yael tamar ximena jimena guadalupe lupe violet harriet margaret janet " +
+    "aranzazu arantxa itziar leire miren ainhoa nerea").split(" "));
+  const MASC_NAMES = new Set(("borja luca bautista joshua nikita jonas elias matias tobias andres isaias zacarias jeremias josue noe jose " +
+    "garcilaso sasha misha dimitri ali akira kenji mustafa idris ezra").split(" "));
+  const strip = s => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  function guessGender(full) {
+    const words = full.trim().split(/\s+/).map(w => w.toLowerCase());
+    if (FEM_TITLES.test(words[0])) return "f";
+    if (MASC_TITLES.test(words[0])) return "m";
+    const w = strip((words[0] || "").replace(/[^a-záéíóúüñ]/gi, ""));
+    if (!w) return "m";
+    if (FEM_NAMES.has(w)) return "f";
+    if (MASC_NAMES.has(w)) return "m";
+    if (/a$/.test(w)) return "f";
+    if (/(dad|cion|sion|triz|ilde|ice|elle|ette|ine|ey|ie|ly)$/.test(w)) return "f";
+    return "m";
+  }
+  const spName = document.getElementById("spName"), spKind = document.getElementById("spKind");
+  const spG = document.getElementById("spG"), spHint = document.getElementById("spHint");
+  const SP_KEY = "almas-espiritu";
+  let spChosenG = null; // género elegido a mano (si la app se equivocó)
+  function hashYear(name) { let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return 1840 + h % 95; }
+  function buildCustom() {
+    const name = spName.value.trim().replace(/\s+/g, " ").slice(0, 40);
+    if (!name) return null;
+    const g = spChosenG || guessGender(name), kind = spKind.value;
+    const known = SPIRITS.find(x => strip(x.name) === strip(name));
+    const sp = { name, g, year: (known && known.year) || hashYear(name), demon: kind === "demonio", child: kind === "nino" };
+    if (sp.child) sp.age = 5 + hashYear(name) % 5;
+    if (sp.demon) {
+      const kd = known && known.demon ? known : null;
+      sp.title = kd ? kd.title : g === "f" ? "la que vino sin ser llamada" : "el que vino sin ser llamado";
+      sp.lines = kd ? kd.lines : DEMON_LINES;
+      sp.year = null;
+    }
+    return sp;
+  }
+  function paintSp() {
+    const typed = !!spName.value.trim();
+    const g = spChosenG || (typed ? guessGender(spName.value) : "m");
+    spG.textContent = "Voz: " + (g === "f" ? "mujer" : "hombre") + (spChosenG ? " (a mano)" : typed ? " (detectada)" : "");
+    spG.setAttribute("aria-pressed", String(!!spChosenG));
+    spHint.textContent = "";
+    if (customSpirit) {
+      const b = document.createElement("b"); b.textContent = customSpirit.name;
+      const what = customSpirit.demon ? "demonio" : customSpirit.child ? (customSpirit.g === "f" ? "niña" : "niño") : "alma en pena";
+      spHint.append("Ahora responde ", b, " (" + what + ", voz de " + (customSpirit.g === "f" ? "mujer" : "hombre") + ").");
+    } else spHint.textContent = "Sin nombre, en cada sesión llega un espíritu al azar.";
+  }
+  function applyCustom(save) {
+    customSpirit = buildCustom();
+    sessionSpirit = customSpirit || pick(SPIRITS);
+    // si el radar ya tiene un espíritu en pantalla, pasa a ser el elegido
+    if (spirit) { spirit.info = sessionSpirit; spirit.name = sessionSpirit.name; spirit.seen = false; }
+    if (save) try {
+      if (customSpirit) localStorage.setItem(SP_KEY, JSON.stringify({ name: spName.value.trim(), kind: spKind.value, g: spChosenG }));
+      else localStorage.removeItem(SP_KEY);
+    } catch (e) {}
+    paintSp();
+  }
+  try {
+    const saved = JSON.parse(localStorage.getItem(SP_KEY) || "null");
+    if (saved && saved.name) { spName.value = saved.name; spKind.value = saved.kind || "alma"; spChosenG = saved.g || null; applyCustom(false); }
+  } catch (e) {}
+  paintSp();
+  spName.addEventListener("input", () => { spChosenG = null; applyCustom(true); }); // nombre nuevo: se vuelve a detectar
+  spKind.addEventListener("change", () => applyCustom(true));
+  spG.addEventListener("click", () => {
+    const now = spChosenG || (spName.value.trim() ? guessGender(spName.value) : "m");
+    spChosenG = now === "f" ? "m" : "f";
+    applyCustom(true);
+  });
+  document.getElementById("spTest").addEventListener("click", () => {
+    if (!soundOn) soundBtn.click();
+    armAudio(); ensureAudio(); unlockSpeech();
+    const sp = customSpirit || currentSpirit();
+    speak(sp.demon ? "Soy " + sp.name : "Me llamo " + sp.name, sp);
+  });
+
   /* ---------- gestos secretos del médium ---------- */
   const medium = document.getElementById("medium");
   const sun = document.getElementById("sun");
@@ -3152,7 +3269,7 @@
   document.getElementById("reset").addEventListener("click", () => {
     // lo que dirá la llamada se decide antes de borrar todo
     const callText = spectralMessage(), ghost = currentSpirit().name;
-    sessionSpirit = pick(SPIRITS); // la próxima sesión la visita otro espíritu
+    sessionSpirit = customSpirit || pick(SPIRITS); // la próxima sesión la visita otro espíritu, salvo que el médium haya elegido uno
     stopRadar();
     leaveSeance();
     forced = null;
