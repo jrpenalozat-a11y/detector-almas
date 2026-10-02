@@ -1054,7 +1054,7 @@
     ].map(x => "<li>" + x + "</li>").join(""));
     each("#medium .sb-title", ["Realistic voice", "People present", "Spirit's name", "Ghost call", "The spirit speaks on its own", "Sounds on hand (tap them when nobody is looking)"]);
     A("#vozPack", "aria-label", "Realistic voice");
-    H("#vozPack", '<option value="us">North American · man and woman · 145 MB</option><option value="gb">British, old and gloomy · man and woman · 96 MB</option>');
+    H("#vozPack", '<option value="us">North American · a different voice for each spirit · 97 MB</option><option value="gb">British, old and gloomy · man and woman · 96 MB</option>');
     T("#vozGet", "Download this voice");
     tail($("#vozOn").parentNode, " Use the realistic voice (otherwise, the phone's own voice)");
     T("#vozHint", "It downloads once (Wi-Fi recommended) and stays saved on the phone.");
@@ -2077,14 +2077,15 @@
     es: { mb: 77,
       m: { path: "es/es_ES/sharvard/medium/es_ES-sharvard-medium.onnx", sid: 0 },
       f: { path: "es/es_ES/sharvard/medium/es_ES-sharvard-medium.onnx", sid: 1 } },
-    // inglés: «ryan» y «amy» (EE. UU.; así suena también el inglés de Canadá)
-    us: { mb: 126,
-      m: { path: "en/en_US/ryan/medium/en_US-ryan-medium.onnx", sid: 0 },
-      f: { path: "en/en_US/amy/medium/en_US-amy-medium.onnx", sid: 0 } },
-    // inglés británico: «obadiah» (sombrío) y «prudence» del modelo semaine
+    // inglés norteamericano (así suena también el inglés de Canadá): un modelo con 904 hablantes.
+    // Cada espíritu toma un hablante propio según su nombre, de la lista de hombres o de mujeres.
+    us: { mb: 79,
+      m: { path: "en/en_US/libritts_r/medium/en_US-libritts_r-medium.onnx", sids: [2, 24, 44, 71, 92, 117, 139, 173, 190, 212, 231, 259, 286, 303, 330, 350, 368, 390, 401, 415, 431, 454, 477, 490, 504, 521, 540, 563, 583, 602, 616, 636, 654, 671, 687, 713, 729, 744, 762, 781, 797, 809, 825, 841, 855, 870, 890, 902] },
+      f: { path: "en/en_US/libritts_r/medium/en_US-libritts_r-medium.onnx", sids: [0, 15, 33, 56, 66, 79, 96, 111, 128, 144, 161, 171, 192, 207, 226, 242, 255, 273, 285, 306, 316, 340, 354, 376, 396, 424, 447, 462, 485, 513, 535, 554, 566, 587, 611, 626, 650, 667, 693, 708, 728, 754, 771, 794, 823, 853, 874, 903] } },
+    // inglés británico: los cuatro hablantes del modelo semaine (obadiah y spike; prudence y poppy)
     gb: { mb: 77,
-      m: { path: "en/en_GB/semaine/medium/en_GB-semaine-medium.onnx", sid: 2 },
-      f: { path: "en/en_GB/semaine/medium/en_GB-semaine-medium.onnx", sid: 0 } },
+      m: { path: "en/en_GB/semaine/medium/en_GB-semaine-medium.onnx", sids: [2, 1] },
+      f: { path: "en/en_GB/semaine/medium/en_GB-semaine-medium.onnx", sids: [0, 3] } },
   };
   const PACKS = EN ? ["us", "gb"] : ["cl", "es"]; // paquetes de voz del idioma activo
   const neural = { pack: null, on: false };
@@ -2139,15 +2140,19 @@
   const genderOf = sp => sp && (sp.g === "f" || sp.child) ? "f" : "m";
   // prioridades en los procesos de voz
   const PRIO = { say: 0, call: 2, board: 3, now: 4 };
+  const nameHash = name => { let h = 2166136261; for (const ch of String(name || "")) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
+  // el hablante del modelo que le toca a este espíritu (siempre el mismo para el mismo nombre)
+  const sidOf = (v, sp) => v.sids ? v.sids[nameHash(sp && sp.name) % v.sids.length] : v.sid;
   const vozCache = new Map(); // frases ya generadas o en camino
-  function startGen(g, text, prio) {
-    const P = NEURAL[neural.pack], key = neural.pack + "|" + g + "|" + text, v = P[g];
+  function startGen(g, text, prio, sp) {
+    const P = NEURAL[neural.pack], v = P[g], sid = v.mms ? 0 : sidOf(v, sp);
+    const key = neural.pack + "|" + g + "|" + sid + "|" + text;
     const wk = vozWorker(v.mms ? "mms" : "piper");
     const had = vozCache.get(key);
     if (had) { if (!had.done && prio > (had.prio || 0)) { wk.bump(had.jobId, prio); had.prio = prio; } return had.p; }
     const pr = v.mms
       ? wk.call({ kind: "mms", text, prio })
-      : wk.call({ kind: "piper", path: v.path, sid: v.sid, text: P.chilenize ? chilenize(text) : text, prio });
+      : wk.call({ kind: "piper", path: v.path, sid, text: P.chilenize ? chilenize(text) : text, prio });
     const entry = { jobId: pr.jobId, prio, done: false };
     entry.p = pr.then(r => { entry.done = true; return r; }, e => { vozCache.delete(key); throw e; });
     vozCache.set(key, entry);
@@ -2157,7 +2162,8 @@
   // empieza a generar lo que el espíritu va a decir, para que esté lista cuando hable
   function prepareVoice(text, sp, prio) {
     if (!neural.on || !neural.pack || !text) return;
-    startGen(genderOf(sp || currentSpirit()), speechText(text), prio == null ? PRIO.board : prio).catch(() => {});
+    const who = sp || currentSpirit();
+    startGen(genderOf(who), speechText(text), prio == null ? PRIO.board : prio, who).catch(() => {});
   }
   // voz neuronal del espíritu como AudioBuffer (null si no está activa o falla: se usa la voz de antes)
   // o.patient: espera a la voz chilena aunque tarde (para «Probar la voz»)
@@ -2170,10 +2176,10 @@
     let r = null;
     try {
       if (P[g].mms) {
-        const key = neural.pack + "|m|" + t, had = vozCache.has(key), job = startGen("m", t, PRIO.now);
+        const key = neural.pack + "|m|0|" + t, had = vozCache.has(key), job = startGen("m", t, PRIO.now, sp);
         r = await Promise.race([job, sleep(o.patient ? 90000 : had ? 2500 : 3000).then(() => null)]);
-        if (!r) r = await startGen("mFast", t, PRIO.now); // la chilena no alcanzó: sale la latina
-      } else r = await startGen(g, t, PRIO.now);
+        if (!r) r = await startGen("mFast", t, PRIO.now, sp); // la chilena no alcanzó: sale la latina
+      } else r = await startGen(g, t, PRIO.now, sp);
     } catch (e) { return null; }
     const c = live(); if (!c || !r) return null;
     const pcm = r.pcm;
@@ -2297,19 +2303,30 @@
     run.then(ok => { if (!ok) speakBrowser(text, sp); }).catch(() => speakBrowser(text, sp));
   }
 
+  // Voz del teléfono (cuando no hay voz realista ni meSpeak). El teléfono tiene pocas voces, así que
+  // el carácter lo dan el tono y la velocidad: el demonio, lo más grave y lento; el alma, apagada;
+  // el niño, aguda y más rápida. Dentro de cada tipo, cada espíritu varía un poco según su nombre.
   function speakBrowser(text, sp) {
     if (!soundOn || !window.speechSynthesis || !text) return;
     try {
-      const fem = !!sp && sp.g === "f", k = fem ? "f" : "m";
+      sp = sp || currentSpirit();
+      const kid = !!sp.child, demon = !!sp.demon, fem = sp.g === "f" || kid, k = fem ? "f" : "m";
       const v = voiceCache[k] || (voiceCache[k] = darkVoice(fem));
-      const make = (vol, rate) => {
-        const u = new SpeechSynthesisUtterance(text.toLowerCase());
+      const h = nameHash(sp.name), u1 = (h % 1000) / 1000, u2 = ((h >>> 10) % 1000) / 1000; // dos números fijos por nombre
+      const mix = (a, b, u) => a + (b - a) * u;
+      const pitch = demon ? mix(0, .2, u1) : kid ? mix(1.6, 2, u1) : fem ? mix(.75, 1.15, u1) : mix(.35, .7, u1);
+      const rate = demon ? mix(.42, .55, u2) : kid ? mix(.8, .95, u2) : mix(.58, .74, u2);
+      const make = (vol, r, p) => {
+        const u = new SpeechSynthesisUtterance(demon || !EN ? text.toLowerCase() : text);
         u.lang = v ? v.lang : tr("es-ES", "en-US"); if (v) u.voice = v;
-        u.pitch = fem ? .3 : 0; u.rate = rate; u.volume = vol;
+        u.pitch = p; u.rate = r; u.volume = vol;
         return u;
       };
-      const main = make(.95, .5), echo = make(.28, .62); // voz grave y luego su eco susurrado
-      const bed = whisperBed();
+      // voz y luego su eco susurrado; el demonio trae además gruñido y retumbo, el niño a veces una risa
+      const main = make(.95, rate, pitch), echo = make(kid ? .18 : .28, rate * 1.22, Math.max(0, pitch - .15));
+      if (demon) { SFX.retumbo(); SFX.grunido(); }
+      else if (kid && u2 < .5) setTimeout(() => SFX.risa(), 1800 + text.length * 90);
+      const bed = kid ? null : whisperBed();
       const stop = () => bed && bed.stop();
       main.onboundary = echo.onboundary = () => bed && bed.kick();
       echo.onend = stop; echo.onerror = stop; main.onerror = stop;
