@@ -1,6 +1,6 @@
 // Detector de Almas en Pena: funciona sin conexión.
 // Sube CACHE al cambiar archivos del núcleo.
-const CACHE = "almas-v7";
+const CACHE = "almas-v8";
 const CORE = ["./", "index.html", "manifest.json", "icon-192.png", "icon-512.png", "voz/mespeak.js", "voz-worker.js"];
 
 self.addEventListener("install", e => {

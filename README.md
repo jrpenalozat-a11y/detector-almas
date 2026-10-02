@@ -7,6 +7,7 @@ funciona sin conexión una vez abierta.
 - **Usar:** https://detector-almas.vercel.app (en el teléfono: «Agregar a pantalla de inicio»).
 - **Descargar:** botón *Code → Download ZIP* de este repo; se abre sirviendo la carpeta
   con cualquier servidor estático (`npx serve .`). La cámara necesita https o localhost.
+- **Idiomas:** español e inglés (botón «English / Español» bajo el título; la primera vez sigue el idioma del teléfono).
 - **Trucos:** mantén apretado el ☼ del tablero 2 segundos para abrir el panel del médium.
 
 Voces: la de respaldo es meSpeak/eSpeak (GPL-3.0); la «voz realista» (chilena y latina, o de España) se descarga

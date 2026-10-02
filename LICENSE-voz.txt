@@ -13,4 +13,6 @@ Voces del espíritu
        es_MX-claude-high (mujer, México) — Apache-2.0
        es_MX-ald-x_low (hombre, México) — Unlicense
        es_ES-sharvard-medium (hombre y mujer, España) — CC BY 3.0
+       en_US-ryan-medium (hombre) y en_US-amy-medium (mujer), inglés norteamericano — ver sus MODEL_CARD
+       en_GB-semaine-medium (inglés británico) — CC BY-NC-SA 4.0 (solo uso no comercial)
    - Motor: onnxruntime-web (MIT) y el fonetizador piper-wasm de Diffusion Studio (eSpeak-ng, GPL-3.0).

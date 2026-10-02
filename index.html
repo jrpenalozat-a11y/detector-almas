@@ -88,6 +88,11 @@
     animation: breathe 7s ease-in-out infinite;
   }
   @keyframes breathe { 50% { text-shadow: 0 0 30px rgba(200,57,45,.7), 0 2px 0 var(--blood); letter-spacing: .01em; } }
+  .langbtn {
+    align-self: center; margin-top: 6px; padding: 6px 14px; font-size: .75rem;
+    background: transparent; color: var(--bone-dim); border: 1px solid #3a2a2e;
+  }
+  .langbtn:hover { color: var(--bone); border-color: var(--bone-dim); }
   .sub {
     font-style: italic; color: var(--bone-dim); margin: 0;
     max-width: 44ch; margin-inline: auto; text-wrap: balance;
@@ -516,6 +521,7 @@
   <header>
     <h1>Detector de Almas en Pena</h1>
     <p class="sub">Escribe la petición completa, luego tu pregunta. Si lo pides con respeto, el espíritu moverá la tabla.</p>
+    <button type="button" class="langbtn" id="langBtn" aria-label="Idioma / Language">English</button>
   </header>
 
   <div class="board" id="board" aria-label="Tablero de espiritismo">
@@ -716,7 +722,283 @@
 
 <script>
 (() => {
-  const PHRASE = "Espíritu, por favor responde la siguiente pregunta:";
+  /* ---------- idioma: español o inglés ----------
+     Se elige con el botón del encabezado y queda guardado; la primera vez sigue el idioma del teléfono.
+     tr(es, en) devuelve el texto del idioma activo. Los textos fijos de la página están en español
+     en el HTML y, en inglés, los reemplaza englishPage(). */
+  const LANG = (() => {
+    try { const s = localStorage.getItem("almas-lang"); if (s === "es" || s === "en") return s; } catch (e) {}
+    return /^en/i.test(navigator.language || "") ? "en" : "es";
+  })();
+  const EN = LANG === "en";
+  const tr = (es, en) => EN ? en : es;
+
+  const EVASIVE_EN = [
+    "Don't ask me that", "That is not for you to know", "Someone else is listening", "I am not alone in this room",
+    "The candles know the answer", "Ask again when the lights are off", "The answer is under your bed", "You don't want to know",
+    "You will know at three in the morning", "Close your eyes and ask again", "There is someone behind you", "That question woke me",
+    "It is not your turn", "Ask the one standing at the door", "I already told you in your sleep", "Look at your hands",
+    "Count how many of you there are now", "The mirror will tell you", "Don't say my name out loud", "That answer has a price",
+    "I'll tell you when you are alone", "Someone else will answer for me", "Don't leave the room yet", "Ask again and I will stay",
+    "Listen to the knocking in the wall", "You already know the answer", "Not while they are watching", "I can't say it in front of them",
+    "Why ask if you're afraid of the answer", "Ask me again tomorrow night", "The one who brought me here knows", "I only answer in the dark",
+    "That is the wrong question", "You asked me this before", "Leave the door open and I'll tell you", "Turn around first",
+    "It's too late to ask that", "I was hoping you wouldn't ask", "Somebody here is lying", "Be quiet. It can hear us",
+  ];
+  const PERSONAL_EN = [
+    "{n}, I know you're looking at me", "{n}, you don't believe in me. Not yet", "{n}, your hands are shaking",
+    "{n}, what were you laughing at just now?", "{n}, don't turn around", "{n}, I was in your room last night",
+    "{n}, you're not the one moving the board", "{n}, someone in your family knew me", "{n}, when you turn off the light I'll be there",
+    "{n}, that cold on your neck is me", "{n}, don't tell anyone what you saw", "{n}, I know what you're thinking",
+    "{n}, breathe slower", "{n}, keep your door shut tonight", "Ask {n} about the dream last night", "{n} let me in",
+    "I came for {n}", "{n}, don't sleep facing the wall", "{n}, look at the corner to your left",
+    "{n}, I've been standing behind you for a while",
+  ];
+  const PAIR_EN = [
+    "{n}, don't let go of {m}'s hand", "{m} didn't tell you the truth, {n}", "{n}, who is sitting between you and {m}?",
+    "{n}, ask {m} why I was called", "{m} has already seen me. {n}, you haven't", "{n} and {m}, one of you is coming with me",
+    "{n}, {m} is closer to me than you are", "{m}, it wasn't {n} who touched your shoulder", "{n}, look into {m}'s eyes. I'm already there",
+  ];
+  const WHISPERS_SAID_EN = [
+    "come", "I'm here", "behind you", "don't go", "I'm watching you", "help me", "don't look",
+    "I'm cold", "open the door", "stay with me", "it's coming", "you're not alone", "shhh", "down here",
+    "don't leave me", "I found you", "play with me", "one, two, three",
+  ];
+  const OPENINGS_EN = [
+    ["The candles are going out…", "Something has entered the room.", "Don't let go of the board."],
+    ["Silence.", "Someone is breathing behind you.", "Don't look back."],
+    ["It's suddenly cold.", "The board is moving on its own.", "The answer is coming."],
+    ["Nobody speak.", "It is looking for your voice.", "It's going to answer you."],
+  ];
+  const DEMONS_EN = [
+    ["Azazel", "m", "the fallen one of the desert", ["I fell from heaven and landed in your house", "The desert taught me how to wait", "Your soul is sand in my hands", "No one casts me out twice"]],
+    ["Belial", "m", "the one who has no master", ["I obey no one", "Your prayers make me laugh", "Soon you will be my servant", "I broke every chain"]],
+    ["Asmodeus", "m", "the lord of wrath", ["Your anger feeds me", "I'm going to fight inside you", "This house will fill with screaming", "Look how your hands are shaking"]],
+    ["Astaroth", "m", "the great duke of hell", ["I know the day you die", "Hell has your name written down", "Kneel before the duke", "Your time is running out"]],
+    ["Baal", "m", "the king of the east", ["I am a king and this house is my throne", "Bring offerings or I will bring punishment", "My armies are waiting outside", "No one sits on my throne"]],
+    ["Beelzebub", "m", "the lord of the flies", ["Do you hear the buzzing?", "My flies are already in your bed", "Everything you touch rots", "I am the lord of the flies"]],
+    ["Leviathan", "m", "the serpent of the abyss", ["I rose from the bottom of the abyss", "I'm coiling around your neck", "The black water is waiting for you", "No one leaves the abyss"]],
+    ["Mammon", "m", "the one of greed", ["Everything has a price, even your soul", "You already paid with your dreams", "You sold what you loved most", "I collect my debts at night"]],
+    ["Moloch", "m", "the devourer", ["I am hungry", "The fire never goes out", "Bring me what you love most", "I will devour you one by one"]],
+    ["Abaddon", "m", "the destroyer", ["I have come to destroy everything", "I opened the bottomless pit", "Nothing will be left standing", "I am the end of your story"]],
+    ["Lilith", "f", "the mother of the night", ["The night is mine, and so are you", "I come when you sleep", "My children are standing around your bed", "You will never sleep in peace again"]],
+    ["Paimon", "m", "the king who sings", ["Do you hear my song?", "I sing for those who are about to die", "Your name sounds good in my song", "Come, sing with me"]],
+    ["Lucifuge", "m", "the one who flees the light", ["Turn off the light and I'll show you my face", "The dark is my home", "When the candle dies, I will come in", "Don't look at the shadow"]],
+    ["Mephistopheles", "m", "the buyer of souls", ["Sign here in your blood", "I'll give you anything you want, in exchange for everything", "Your soul will fetch a good price", "The deal is already closed"]],
+    ["Andras", "m", "the sower of discord", ["One of you will betray another", "I planted hatred between you", "Soon you'll look at each other as enemies", "Ask them what they really think of you"]],
+    ["Bael", "m", "the one with three heads", ["Three voices are speaking to you at once", "I have three mouths and all of them are hungry", "I'm watching you with six eyes", "You can't hide from me"]],
+    ["Agares", "m", "the one who makes the earth tremble", ["You will feel the floor shake", "The ground will open under your feet", "I'll bury you with this house", "Listen to the foundations crack"]],
+    ["Vassago", "m", "the one who sees what is hidden", ["I know what you're hiding", "I saw what you did when no one was looking", "Your secrets belong to me", "Nothing is hidden from me"]],
+    ["Samigina", "m", "the one who counts the drowned", ["I keep count of the drowned", "You'll be the next number", "I feel water in your lungs", "Breathe while you still can"]],
+    ["Marbas", "m", "the one who brings plague", ["I carry sickness on my breath", "Your body has already begun to rot", "Cough. Cough for me", "The fever comes tonight"]],
+    ["Valefor", "m", "the thief", ["I'll steal what you love most", "I've already taken something of yours", "Look carefully. Something is missing", "I steal souls while they sleep"]],
+    ["Amon", "m", "the wolf of fire", ["I can smell your fear from far away", "My mouth spits fire", "I'm howling for you tonight", "Run. The wolf has seen you"]],
+    ["Barbatos", "m", "the one who speaks with beasts", ["The dogs already know I'm here", "The animals are fleeing this house", "Listen to the dogs howl", "The beasts obey me"]],
+    ["Buer", "m", "the one with five legs", ["I'm walking circles around your bed", "Listen to my feet on the ceiling", "Five steps and I'm with you", "I move like a wheel of fire"]],
+    ["Gusion", "m", "the one who knows your past", ["I remember everything you did", "Your past has come looking for you", "No one forgets their guilt", "Let's talk about what you never told anyone"]],
+    ["Sitri", "m", "the one with a leopard's face", ["My eyes shine in the dark", "I'm stalking you like prey", "I'm crouched right behind you", "I pounce when you close your eyes"]],
+    ["Beleth", "m", "the furious king", ["My fury has no end", "My trumpets announce your death", "You will tremble before the king", "No one can calm my fury"]],
+    ["Leraje", "m", "the archer of wounds", ["My arrows never miss", "I'll wound you where it hurts most", "The wounds I make never close", "I've already aimed at your heart"]],
+    ["Eligos", "m", "the rider of war", ["I'm riding toward your house", "I bring war with me", "My lance is looking for your chest", "Listen to my horse's hooves"]],
+    ["Zepar", "m", "the one who confuses", ["You no longer know what is real", "Are you dreaming or awake?", "None of this is happening. Or is it?", "Your mind is mine"]],
+    ["Botis", "m", "the viper", ["I can feel your pulse", "My venom is already in your blood", "I'm crawling under your bed", "One bite and it's all over"]],
+    ["Bathin", "m", "the one who knows the roads of the dead", ["I know the road to the grave", "I'll lead you down the road of the dead", "Your steps are already heading there", "An open grave is waiting for you"]],
+    ["Sallos", "m", "the one who smiles", ["I'm smiling behind you", "My smile is the last thing you'll see", "Smile. I have you now", "No one sees my teeth and lives"]],
+    ["Purson", "m", "the lion with the serpent", ["I roar and the house trembles", "My serpent is looking for your throat", "I know what tomorrow brings", "Tomorrow will be worse"]],
+    ["Marax", "m", "the bull with a human face", ["I'm wearing your face", "I charge at everything you love", "My horns tear the night open", "Look at me. I'm almost human"]],
+    ["Naberius", "m", "the three-headed crow", ["The crows are circling over your roof", "I'm cawing your name", "Three crows, three deaths", "I'll peck out your eyes"]],
+    ["Glasya-Labolas", "m", "the winged dog", ["I'm barking in the dark", "My wings are covering your window", "I'll follow you wherever you go", "I bite without warning"]],
+    ["Bune", "m", "the three-headed dragon", ["I speak from the graves", "My three mouths are whispering your name", "The dead obey my voice", "Tonight the dead will rise"]],
+    ["Ronove", "m", "the one who steals voices", ["I'll steal your voice", "Scream. No one will hear you", "I already have your mother's voice", "I speak in the voices of the ones you love"]],
+    ["Berith", "m", "the one with the red crown", ["My crown is made of blood", "Everything I touch turns to blood", "I lie and everyone believes me", "I am your king. Bow down"]],
+    ["Focalor", "m", "the one who drowns", ["The water is rising", "I'll pull you into the deep", "No one comes up for air", "Feel the water in your throat"]],
+    ["Vepar", "m", "the one of the shipwreck", ["I sink ships and souls", "The tide will drag you away", "Your body will float at dawn", "The sea is asking for one more"]],
+    ["Sabnock", "m", "the one who rots the wounds", ["Your wounds will not heal", "I rot everything you touch", "I can smell your flesh", "I build towers out of bones"]],
+    ["Shax", "m", "the one who steals sight", ["I'll leave you blind in the dark", "You won't see me coming anymore", "Your eyes will be mine", "Close your eyes. It makes no difference"]],
+    ["Naamah", "f", "the one who sings in the dark", ["Listen to my lullaby", "I sing so you won't wake up", "Sleep. Sleep forever", "My voice will carry you far away"]],
+    ["Agrat", "f", "the one who dances with the dead", ["I'm dancing on your grave", "Come, dance with me", "The dead are dancing tonight", "One turn and you won't come back"]],
+    ["Lamashtu", "f", "the one who haunts the cradles", ["Around the cradle, around the bed", "I can hear the children breathing", "No one is protecting this house", "I come for the smallest ones"]],
+    ["Abyzou", "f", "the one who never rests", ["I never sleep. I never rest", "I'll look for you in every house", "No charm will protect you", "I always come back"]],
+    ["Pazuzu", "m", "the king of the cursed winds", ["Do you feel the wind?", "I bring the wind of hell", "The windows will open on their own", "The wind carries souls away"]],
+  ];
+  // almas adultas y niños con nombres antiguos de habla inglesa
+  const SOULS_EN = [
+    ["Eleanor", "f", 1893], ["Winifred", "f", 1871], ["Mabel", "f", 1902], ["Rosalind", "f", 1888], ["Amelia", "f", 1919],
+    ["Leonora", "f", 1864], ["Agnes", "f", 1897], ["Bridget", "f", 1856], ["Edith", "f", 1924], ["Constance", "f", 1879],
+    ["Philomena", "f", 1885], ["Genevieve", "f", 1908], ["Agatha", "f", 1847], ["Josephine", "f", 1862], ["Mercy", "f", 1931],
+    ["Ursula", "f", 1850], ["Victoria", "f", 1916], ["Sister Clara", "f", 1896],
+    ["Ambrose", "m", 1881], ["Silas", "m", 1905], ["Matthias", "m", 1921], ["Anselm", "m", 1869], ["Bartholomew", "m", 1853],
+    ["Damian", "m", 1912], ["Cornelius", "m", 1898], ["Jasper", "m", 1844], ["Ezekiel", "m", 1883], ["Leander", "m", 1909],
+    ["Nicodemus", "m", 1866], ["Theodore", "m", 1901],
+  ];
+  const KIDS_EN = [["Tommy", "m", 1927, 7], ["Johnny", "m", 1899, 6], ["Billy", "m", 1921, 8], ["Louie", "m", 1903, 5],
+    ["Rosie", "f", 1910, 6], ["Annie", "f", 1933, 7], ["Lottie", "f", 1888, 9], ["Molly", "f", 1915, 5]];
+  const DEMON_LINES_EN = [
+    "Your soul belongs to me", "You will burn with me", "This house is mine", "No one is coming to save you", "I am legion",
+    "You called me and now I am here", "I'm going to get inside you", "Praying won't help you", "I see every one of your sins", "The fire is waiting for you",
+    "Kneel before me", "None of you will leave this place", "Your blood is calling me", "I will never leave", "I feed on your fear",
+    "There is no God here", "You signed with your own name", "I'll drag you down with me", "Tonight is mine", "Look me in the eyes",
+  ];
+  const SOUL_LINES_EN = [
+    "Help me rest", "I can't find the way out", "I'm so cold. Help me", "I want to go home", "Where is my mother?",
+    "Pray for me", "I don't know where I am", "Tell my family I miss them", "Light a candle for me", "Don't leave me here",
+    "I've been waiting for so long", "Let me go", "I can't remember my own face", "Help me, please", "I'm so tired",
+    "I want to see the light", "Nobody can hear me", "Forgive me", "Free me from this house", "It still hurts",
+  ];
+  const CHILD_LINES_EN = [
+    "Do you want to play with me?", "I can't find my mommy", "Count to ten and come find me", "I hid under your bed",
+    "Why won't anybody play with me?", "The man in black scares me", "I want my doll", "Shh, he can hear us",
+    "Come play on the stairs", "My throat hurts from crying", "I'm cold. Can I have your sweater?",
+    "I see you, I see you", "My mommy told me not to talk to you", "Don't turn off the light, please",
+    "Is it nighttime again?", "I want to go home",
+  ];
+  const SAYINGS_EN = [
+    "I know you can hear me", "Don't turn off the light", "There's someone else in this house", "I watched you sleep last night",
+    "Count again. There's one more of us", "Don't leave me alone again", "This house was mine", "I'm so cold",
+    "Nobody left this place alive", "Look under the table", "I'm still here", "I like the way you breathe",
+    "I've learned your names", "The mirror isn't showing what you see", "Don't close your eyes", "It will be midnight soon",
+    "I've been waiting years for you", "Your shadow isn't moving with you", "I heard what you said", "There's someone sitting next to you",
+    "Don't turn around", "I'm not leaving yet", "Someone won't be sleeping alone tonight", "Let me in",
+    "My grave is close by", "One of you invited me", "Open the window", "You're part of this now",
+    "I can smell your fear", "When you fall asleep, I'll come for you",
+  ];
+  // ¿nombre de mujer o de hombre? En inglés no hay reglas de terminación fiables: títulos y listas de nombres comunes
+  const FEM_TITLES_EN = /^(mrs\.?|ms\.?|miss|madam|madame|lady|sister|aunt|auntie|aunty|grandma|granny|grandmother|nana|mother|mom|mommy|mama|queen|widow)$/;
+  const MASC_TITLES_EN = /^(mr\.?|sir|lord|brother|uncle|grandpa|grandfather|granddad|father|dad|daddy|papa|king|captain|colonel|sergeant|reverend|doctor|dr\.?|old|saint|st\.?)$/;
+  const FEM_NAMES_EN = new Set(("mary patricia jennifer linda elizabeth barbara susan jessica sarah karen lisa nancy betty margaret sandra ashley kimberly " +
+    "emily donna michelle carol amanda dorothy melissa deborah stephanie rebecca sharon laura cynthia kathleen amy angela shirley anna brenda pamela emma " +
+    "nicole helen samantha katherine christine debra rachel carolyn janet catherine maria heather diane ruth julie olivia joyce virginia victoria kelly " +
+    "lauren christina joan evelyn judith megan andrea cheryl hannah jacqueline martha gloria teresa ann anne sara madison frances kathryn janice abigail " +
+    "alice julia judy sophia grace denise amber doris marilyn danielle beverly isabella theresa diana natalie brittany charlotte marie kayla alexis lori " +
+    "ava mia chloe zoe lily ella avery scarlett aria penelope layla riley nora eleanor hazel violet aurora savannah audrey brooklyn bella claire skylar " +
+    "lucy caroline maya willow naomi elena allison madelyn cora ruby eva autumn adeline hailey valentina isla quinn ivy sadie piper lydia alexa josephine " +
+    "delilah vivian sophie madeline peyton clara melanie mackenzie reagan jade isabelle natalia athena taylor faith rose kylie alexandra iris edith agnes " +
+    "mabel winifred bridget constance genevieve agatha mercy ursula rosalind leonora philomena beatrice florence gertrude harriet ethel maude mildred esther " +
+    "pearl opal myrtle bessie nellie rosie annie lottie molly maggie sally becky jenny katie kate jess beth liz meg sue kim jen erin shannon tracy stacy " +
+    "courtney lindsay lindsey whitney brooke paige morgan hope joy dawn eve gwen fern june april may summer holly ginger sylvie chantal nathalie josee manon " +
+    "celine amelie margot simone colette yvonne suzanne lorraine elaine eileen maureen colleen irene joanne dianne leanne roxanne carmen ingrid astrid").split(" "));
+  const MASC_NAMES_EN = new Set(("james robert john michael david william richard joseph thomas charles christopher daniel matthew anthony mark donald steven " +
+    "paul andrew joshua kenneth kevin brian george timothy ronald edward jason jeffrey ryan jacob gary nicholas eric jonathan stephen larry justin scott " +
+    "brandon benjamin samuel gregory alexander frank patrick raymond jack dennis jerry tyler aaron jose adam nathan henry douglas zachary peter kyle ethan " +
+    "walter noah jeremy christian keith roger terry gerald harold sean austin carl arthur lawrence dylan jesse jordan bryan billy joe bruce gabriel logan " +
+    "albert willie alan juan wayne elijah randy roy vincent ralph eugene russell bobby mason philip louis liam oliver lucas levi theodore silas ambrose " +
+    "anselm bartholomew damian cornelius jasper ezekiel leander nicodemus matthias tommy johnny louie bill bob jim tom mike dave steve dan matt tony chris " +
+    "nick sam ben max leo luke owen caleb isaac wyatt carter jayden hunter connor eli landon aiden jackson sebastian mateo ezra asher hudson lincoln colton " +
+    "miles cooper xavier dominic ian evan cole gavin chase blake trevor shane derek travis cody brett craig grant neil glen dale earl floyd lloyd clarence " +
+    "herbert ernest stanley leonard norman marvin melvin harvey chester clyde luther otis rufus amos elias jonas tobias andre pierre michel luc marc jacques " +
+    "yves guy luca jeremiah isaiah zachariah nikita sasha freddie charlie archie alfie ollie harry barry larry garry jimmy danny kenny ronnie donnie teddy " +
+    "eddie freddy andy randy rudy cody brody rory corey jeffery zachery anthony timothy stanley wesley bradley riley rodney sidney dudley finley huey").split(" "));
+  function guessGenderEN(full) {
+    const words = full.trim().split(/\s+/).map(w => w.toLowerCase());
+    if (FEM_TITLES_EN.test(words[0])) return "f";
+    if (MASC_TITLES_EN.test(words[0])) return "m";
+    const w = (words[0] || "").replace(/[^a-z]/g, "");
+    if (!w) return "m";
+    if (MASC_NAMES_EN.has(w)) return "m";
+    if (FEM_NAMES_EN.has(w)) return "f";
+    if (/(a|ia|ie|ine|elle|ette|lyn|lynn|leen|een|ey|ee|ah|is|yn)$/.test(w)) return "f";
+    return "m";
+  }
+
+  // textos fijos de la página en inglés
+  function englishPage() {
+    document.documentElement.lang = "en";
+    document.title = "Lost Souls Detector";
+    const $ = s => document.querySelector(s);
+    const T = (sel, text) => { const el = $(sel); if (el) el.textContent = text; };
+    const H = (sel, html) => { const el = $(sel); if (el) el.innerHTML = html; };
+    const A = (sel, attr, v) => { const el = $(sel); if (el) el.setAttribute(attr, v); };
+    const tail = (el, text) => { if (el && el.lastChild) el.lastChild.textContent = text; }; // el texto que va después de un botón o casilla
+    const each = (sel, texts) => document.querySelectorAll(sel).forEach((el, i) => { if (texts[i] != null) el.textContent = texts[i]; });
+    // llamada
+    A("#call", "aria-label", "Incoming call");
+    T("#callLabel", "Incoming call…"); T("#callName", "Unknown"); T("#callNum", "Private number");
+    A("#callNo", "aria-label", "Decline"); A("#callYes", "aria-label", "Answer"); A("#callSpk", "aria-label", "Speaker"); A("#callEnd", "aria-label", "Hang up");
+    tail($("#callNo").parentNode, "Decline"); tail($("#callYes").parentNode, "Answer");
+    tail($("#callSpk").parentNode, "Speaker"); tail($("#callEnd").parentNode, "Hang up");
+    T("#callHint", "Hold the phone to your ear");
+    // encabezado y tablero
+    T("header h1", "Lost Souls Detector");
+    T("header .sub", "Type the full request, then your question. If you ask with respect, the spirit will move the board.");
+    A("#board", "aria-label", "Spirit board");
+    T("#answer", "The board is waiting for your question.");
+    // radar
+    A(".radar", "aria-label", "Presence radar"); A("#scope", "aria-label", "Radar screen");
+    T(".radar h2", "Presence radar");
+    T("#rstatus", "Scanning… no readings. Range 6 m.");
+    each(".stats dt", ["Living", "Presences", "Name", "Type", "Died", "Distance", "Bearing"]);
+    T("#scanbtn", "Scan the area");
+    T('label[for="names"]', "Names of the people here (optional)"); A("#names", "placeholder", "Emily, Jack, Aunt Rose");
+    T('label[for="people"]', "Or just how many people there are");
+    T('#calib button[type="submit"]', "Place on the radar");
+    T("#undo", "Undo"); T("#autoplace", "Place the rest at random");
+    T("#placemsg", "Tap the radar where person 1 of 3 is.");
+    // cámara
+    A(".specter", "aria-label", "Spectral camera"); T(".specter h2", "Spectral camera");
+    T("#sstatus", "Record a few seconds of the room or take a photo. The camera catches what the eye can't see.");
+    T("#recBtn", "● Record video"); T("#shotBtn", "Take photo"); T("#photoBtn", "Upload photo"); T("#videoBtn", "Upload video");
+    T("#camFallback", "Use the phone's camera");
+    T("#snap", "Take photo"); T("#recgo", "● Record"); T("#reccancel", "Cancel");
+    T("#specsave", "Save"); T("#specagain", "Another apparition"); T("#specclose", "Close camera");
+    // ritual
+    H('label[for="petition"]', "Request <b>·</b> type all of it");
+    A("#petition", "placeholder", "Spirit, please answer the following question:");
+    H('label[for="question"]', "Question <b>·</b> end it with ?");
+    A("#question", "placeholder", "Who walks through my house at night?");
+    T("#ask", "Summon"); T("#sound", "Sound: on"); T("#reset", "End session");
+    // panel del médium
+    T("#medium summary", "Medium's panel");
+    H("#medium ol", [
+      "This panel is hidden. To open or close it, press and hold the sun ☼ in the corner of the board for 2 seconds.",
+      "In the request field, type a period <code>.</code> first. Nobody will see it: the screen shows the normal request.",
+      "Without stopping, type the secret answer. For example <code>.Your grandmother.</code> Every key you press turns into the next letter of the request.",
+      "Type another period <code>.</code> to close the secret, and keep typing until the request is complete.",
+      "Let your victim type the question. The spirit will spell out your answer on the board.",
+      "After every answer the request clears itself: for the next question it has to be typed in full again (and you can slip in a new secret answer). If someone asks without the full request, nobody answers.",
+      "With no secret answer, the spirit dodges the question with one of 40 random lines.",
+      "Yes-or-no answer: tap the word “Yes” or “No” on the board once. It flickers for an instant and the next answer will be that. Tap the same word again to cancel. This takes priority over everything else.",
+      "With the sound on, the spirit says the answer out loud in a voice from beyond the grave. The sounds of the house (footsteps, doors, knocking, crying, distant screams, whispers) are real recordings; the distant ones sound as if they came from another room.",
+      "Spirits: each session brings one of 87 (49 demons with their own lines, 30 lost souls and 8 children). Each one has its own voice. Pressing “End session” brings a different one.",
+      "Realistic voice (below): pick an accent and press “Download this voice”. It is a neural voice that sounds like a real person, a man or a woman depending on the spirit, with the same otherworldly effects. It downloads once (Wi-Fi recommended) and then works offline. Hear it with “Test the voice”. Without it, the spirit uses the phone's own voice.",
+      "People present (below): type the names of the players, separated by commas. The spirit names them with lines like “Emily, your hands are shaking” or “Jack, don't let go of Emily's hand”: in nearly half of its answers on the board, in the ghost call, and when it speaks on its own, and sometimes it whispers them. “Make it name someone now” triggers it on the spot. The names stay saved on the phone.",
+      "Spirit's name (below): type any name you like (for example “Mrs. Rose”, or someone the victim knows) and from then on that is the spirit, on the board, the radar, the call and the camera. The app guesses whether the name is a woman's or a man's and gives it that voice; if it gets it wrong, tap the voice button to switch. It stays saved on the phone even after you end the session. Clear the name to go back to random spirits.",
+      "Ghost call: pressing “End session” turns the screen black as if the app had shut down. 8–14 seconds later a call comes in from a private number. If they lock the phone or close the app, the call comes in as soon as they open it again. When answered it plays quietly through the earpiece, sounding like a phone line (they have to hold it to their ear), and at the end it screams at full volume; the “Speaker” button plays it loud for everyone. You hear static and breathing, and the spirit says the answer in its own voice (the secret one if you typed it before ending). If the call is declined it rings again; the second time it answers itself. To leave the black screen without waiting, press and hold it for 3 seconds.",
+      "Spectral camera: press “Take photo” or “Record video” (it records up to 8 seconds, with sound). The camera looks normal, no filters; with “Night vision: on” it looks like an infrared security camera. Point it at the darkest part of the room. A translucent figure that fits the scene appears in the result: standing, crossing, or peeking in from an edge, with the background warped through it. In video it lasts 1–2 seconds in the middle of the clip, with a couple of dropped frames. There is no text and no alert: let them find it themselves. “Save” gives you the file with a camera-style name (IMG_… or VID_…) to show around or send. If the figure isn't convincing, “Another apparition” generates a new one over the same shot. The kind of figure depends on the session's spirit (woman, man, child or shadow).",
+      "Radar: press “Scan the area” (or type <code>..</code> in the question). Type the names of the people present separated by commas (or just how many there are), press “Place on the radar” and tap the radar screen where each one is. With names, the spirit mentions them in its answers and says who it is standing next to. You are the centre; up is where the phone is pointing. After a while a spirit appears that moves around and spells its name on the board.",
+    ].map(x => "<li>" + x + "</li>").join(""));
+    each("#medium .sb-title", ["Realistic voice", "People present", "Spirit's name", "Ghost call", "The spirit speaks on its own", "Sounds on hand (tap them when nobody is looking)"]);
+    A("#vozPack", "aria-label", "Realistic voice");
+    H("#vozPack", '<option value="us">North American · man and woman · 145 MB</option><option value="gb">British, old and gloomy · man and woman · 96 MB</option>');
+    T("#vozGet", "Download this voice");
+    tail($("#vozOn").parentNode, " Use the realistic voice (otherwise, the phone's own voice)");
+    T("#vozHint", "It downloads once (Wi-Fi recommended) and stays saved on the phone.");
+    A("#presentes", "placeholder", "Emily, Jack, Aunt Rose"); A("#presentes", "aria-label", "Names of the people present");
+    T("#presHint", "Type the names of the players, separated by commas.");
+    T("#sayName", "Make it name someone now");
+    A("#spName", "placeholder", "E.g. Rose, Mr. Ambrose, Sister Clara"); A("#spName", "aria-label", "Spirit's name");
+    A("#spKind", "aria-label", "Kind of spirit");
+    each("#spKind option", ["Lost soul", "Child", "Demon"]);
+    T("#spTest", "Test the voice");
+    tail($("#callOnClose").parentNode, " On “End session”, the app shuts off and the call comes in 8–14 seconds later");
+    T("#callSoon", "Call in 10 seconds"); T("#callNow", "Call now");
+    tail($("#saysOn").parentNode, " Every 35–80 seconds it says something frightening out loud, without anyone asking");
+    T("#sayNow", "Make it speak now");
+    const SFX_EN = { palabras: "Whisper with words", susurrosCruzados: "Whispers on both sides", gritoLejano: "Distant woman's scream",
+      alaridoLejano: "Distant howl", llanto: "Crying far away", susurro: "Whisper", puerta: "Creaking door", golpes: "Knocking on the wall",
+      pasos: "Footsteps", respiracion: "Breathing", lamento: "Moan", risa: "Laughter", cajaDeMusica: "Music box", campana: "Bell",
+      viento: "Wind", grunido: "Growl", estatica: "Static", retumbo: "Rumble", chirrido: "Screech" };
+    document.querySelectorAll("#soundboard button[data-sfx]").forEach(b => { if (SFX_EN[b.dataset.sfx]) b.textContent = SFX_EN[b.dataset.sfx]; });
+  }
+  if (EN) englishPage();
+  // botón de idioma
+  const langBtn = document.getElementById("langBtn");
+  langBtn.textContent = tr("English", "Español");
+  langBtn.addEventListener("click", () => {
+    try { localStorage.setItem("almas-lang", EN ? "es" : "en"); } catch (e) {}
+    location.reload();
+  });
+
+  const PHRASE = tr("Espíritu, por favor responde la siguiente pregunta:", "Spirit, please answer the following question:");
   const board = document.getElementById("board");
   const planchette = document.getElementById("planchette");
   const petition = document.getElementById("petition");
@@ -739,7 +1021,7 @@
     pos[key] = { x, y, el: s };
   }
   const row1 = "ABCDEFGHIJKLM".split("");
-  const row2 = "NÑOPQRSTUVWXYZ".split("");
+  const row2 = (EN ? "NOPQRSTUVWXYZ" : "NÑOPQRSTUVWXYZ").split("");
   const arc = (arr, yBase, lift, x0, x1) => arr.forEach((c, i) => {
     const t = i / (arr.length - 1);
     const x = x0 + (x1 - x0) * t;
@@ -749,9 +1031,9 @@
   arc(row1, 38, 12, 9, 91);
   arc(row2, 56, 10, 7, 93);
   "1234567890".split("").forEach((n, i) => place(n, n, 20 + i * (60 / 9), 72, "num"));
-  place("SÍ", "Sí", 16, 11, "word");
+  place("SÍ", tr("Sí", "Yes"), 16, 11, "word"); // la clave interna sigue siendo «SÍ»
   place("NO", "No", 84, 11, "word");
-  place("ADIÓS", "Adiós", 50, 88, "word");
+  place("ADIÓS", tr("Adiós", "Goodbye"), 50, 88, "word");
   const REST = { x: 50, y: 62 };
 
   function moveTo(p, tilt) {
@@ -780,7 +1062,9 @@
   const closing = document.getElementById("closing");
   const whisper = document.getElementById("whisper");
   let called = false;
-  const WHISPERS = [[.3, "Algo se mueve en la habitación…"], [.6, "Te está escuchando."], [.85, "Ya casi está aquí."], [1, "Ha llegado. Ahora pregunta."]];
+  const WHISPERS = EN
+    ? [[.3, "Something is moving in the room…"], [.6, "It's listening to you."], [.85, "It's almost here."], [1, "It has arrived. Ask now."]]
+    : [[.3, "Algo se mueve en la habitación…"], [.6, "Te está escuchando."], [.85, "Ya casi está aquí."], [1, "Ha llegado. Ahora pregunta."]];
 
   function atmosphere() {
     const prog = Math.min(1, shown.length / PHRASE.length);
@@ -840,7 +1124,7 @@
 
   /* ---------- respuestas del más allá ---------- */
   // Sin respuesta secreta, el espíritu esquiva la pregunta (55 frases al azar)
-  const EVASIVE = [
+  const EVASIVE = EN ? EVASIVE_EN : [
     "Solo hablo con Ricardo",
     "Dónde está Ricardo",
     "Traigan a Ricardo",
@@ -913,7 +1197,7 @@
   }
 
   // frases con el nombre de alguien presente (panel del médium o radar)
-  const PERSONAL = [
+  const PERSONAL = EN ? PERSONAL_EN : [
     "{n}, sé que me estás mirando",
     "{n}, tú no crees en mí. Todavía",
     "{n}, te tiemblan las manos",
@@ -936,7 +1220,7 @@
     "{n}, llevo rato parado detrás de ti",
   ];
   // frases que nombran a dos de los presentes
-  const PAIR = [
+  const PAIR = EN ? PAIR_EN : [
     "{n}, no le sueltes la mano a {m}",
     "{m} no te dijo la verdad, {n}",
     "{n}, ¿quién está sentado entre tú y {m}?",
@@ -971,7 +1255,7 @@
   function decide() {
     const q = question.value.trim();
     const { secret } = derive(keys);
-    if (!q) return { text: "Pregunta algo", kind: "refuse" };
+    if (!q) return { text: tr("Pregunta algo", "Ask something"), kind: "refuse" };
     if (forced) { const t = forced; forced = null; return { text: t, kind: Math.random() < .5 ? "omen" : "refuse" }; }
     if (secret) return { text: secret, kind: "true" };
     const cs = currentSpirit(), r = Math.random(), named = presentNames().length > 0;
@@ -1485,7 +1769,7 @@
   });
 
   // frases que se susurran solas
-  const WHISPERS_SAID = [
+  const WHISPERS_SAID = EN ? WHISPERS_SAID_EN : [
     "ven", "estoy aquí", "detrás de ti", "no te vayas", "te estoy mirando", "ayúdame", "no mires",
     "tengo frío", "abre la puerta", "quédate conmigo", "ya viene", "no estás solo", "shhh", "aquí abajo",
     "no me dejes", "te encontré", "juega conmigo", "uno, dos, tres",
@@ -1493,7 +1777,7 @@
   async function whisperWords(text, side) {
     const c = live(); if (!c) return;
     const names = presentNames();
-    if (!text) text = names.length && Math.random() < .35 ? pick(names) + (Math.random() < .5 ? "" : ", " + pick(["ven", "mírame", "estoy aquí"])) : pick(WHISPERS_SAID);
+    if (!text) text = names.length && Math.random() < .35 ? pick(names) + (Math.random() < .5 ? "" : ", " + pick(EN ? ["come", "look at me", "I'm here"] : ["ven", "mírame", "estoy aquí"])) : pick(WHISPERS_SAID);
     const pan0 = side != null ? side * rnd(.7, 1) : (Math.random() < .5 ? -1 : 1) * rnd(.6, 1);
     const busyVoz = neural.on && workers.piper && workers.piper.pending() > 1;
     const nv = busyVoz ? null : await neuralVoice(text, currentSpirit(), { fast: true });
@@ -1514,11 +1798,16 @@
   // se elige una voz de hombre o de mujer según el espíritu
   let voiceCache = {};
   function darkVoice(fem) {
-    const vs = speechSynthesis.getVoices().filter(v => /^es/i.test(v.lang));
+    const vs = speechSynthesis.getVoices().filter(v => (EN ? /^en/i : /^es/i).test(v.lang));
     if (!vs.length) return null;
-    const male = v => /(jorge|diego|pablo|enrique|carlos|juan|miguel|antonio|alvaro|álvaro|raul|raúl|andres|andrés|jaime|male|hombre|masculin)/i.test(v.name);
-    const female = v => /(monica|mónica|paulina|helena|laura|lucia|lucía|elvira|marisol|sabina|dalia|elena|conchita|penélope|penelope|female|mujer|femenin)/i.test(v.name);
-    const score = v => (fem ? (female(v) ? 5 : 0) - (male(v) ? 3 : 0) : (male(v) ? 5 : 0) - (female(v) ? 3 : 0)) + (v.localService ? 1 : 0);
+    const male = v => (EN
+      ? /(daniel|david|mark|james|george|alex|fred|ralph|bruce|guy|aaron|arthur|oliver|ryan|liam|william|\bmale\b)/i
+      : /(jorge|diego|pablo|enrique|carlos|juan|miguel|antonio|alvaro|álvaro|raul|raúl|andres|andrés|jaime|male|hombre|masculin)/i).test(v.name);
+    const female = v => (EN
+      ? /(samantha|victoria|karen|zira|susan|hazel|moira|tessa|fiona|allison|ava|jenny|aria|sonia|libby|clara|female)/i
+      : /(monica|mónica|paulina|helena|laura|lucia|lucía|elvira|marisol|sabina|dalia|elena|conchita|penélope|penelope|female|mujer|femenin)/i).test(v.name);
+    // en inglés se prefiere una voz de Canadá o EE. UU.
+    const score = v => (fem ? (female(v) ? 5 : 0) - (male(v) ? 3 : 0) : (male(v) ? 5 : 0) - (female(v) ? 3 : 0)) + (v.localService ? 1 : 0) + (EN && /^en[-_](CA|US)/i.test(v.lang) ? 1 : 0);
     return vs.slice().sort((a, b) => score(b) - score(a))[0];
   }
   if (window.speechSynthesis) speechSynthesis.onvoiceschanged = () => { voiceCache = {}; };
@@ -1560,6 +1849,7 @@
      Si la voz no carga, se usa la voz del teléfono. */
   let meSpeakP = null;
   function loadMeSpeak() {
+    if (EN) return Promise.resolve(null); // la voz incluida solo habla español: en inglés se usa la del teléfono
     if (window.meSpeak) return Promise.resolve(window.meSpeak);
     if (!meSpeakP) meSpeakP = new Promise(res => {
       const sc = document.createElement("script");
@@ -1651,7 +1941,16 @@
     es: { mb: 77,
       m: { path: "es/es_ES/sharvard/medium/es_ES-sharvard-medium.onnx", sid: 0 },
       f: { path: "es/es_ES/sharvard/medium/es_ES-sharvard-medium.onnx", sid: 1 } },
+    // inglés: «ryan» y «amy» (EE. UU.; así suena también el inglés de Canadá)
+    us: { mb: 126,
+      m: { path: "en/en_US/ryan/medium/en_US-ryan-medium.onnx", sid: 0 },
+      f: { path: "en/en_US/amy/medium/en_US-amy-medium.onnx", sid: 0 } },
+    // inglés británico: «obadiah» (sombrío) y «prudence» del modelo semaine
+    gb: { mb: 77,
+      m: { path: "en/en_GB/semaine/medium/en_GB-semaine-medium.onnx", sid: 2 },
+      f: { path: "en/en_GB/semaine/medium/en_GB-semaine-medium.onnx", sid: 0 } },
   };
+  const PACKS = EN ? ["us", "gb"] : ["cl", "es"]; // paquetes de voz del idioma activo
   const neural = { pack: null, on: false };
   // archivos que hay que tener guardados para cada paquete
   function packFiles(pack) {
@@ -1869,7 +2168,7 @@
       const v = voiceCache[k] || (voiceCache[k] = darkVoice(fem));
       const make = (vol, rate) => {
         const u = new SpeechSynthesisUtterance(text.toLowerCase());
-        u.lang = v ? v.lang : "es-ES"; if (v) u.voice = v;
+        u.lang = v ? v.lang : tr("es-ES", "en-US"); if (v) u.voice = v;
         u.pitch = fem ? .3 : 0; u.rate = rate; u.volume = vol;
         return u;
       };
@@ -1901,7 +2200,7 @@
   soundBtn.addEventListener("click", () => {
     soundOn = !soundOn;
     soundBtn.setAttribute("aria-pressed", String(soundOn));
-    soundBtn.textContent = "Sonido: " + (soundOn ? "encendido" : "apagado");
+    soundBtn.textContent = tr("Sonido: ", "Sound: ") + (soundOn ? tr("encendido", "on") : tr("apagado", "off"));
     if (soundOn) {
       unlockSpeech();
       startDrone();
@@ -1938,7 +2237,7 @@
     if (text === "SÍ" || text === "NO") return [text];
     const out = [];
     for (const raw of text.toUpperCase()) {
-      if (raw === "Ñ") { out.push("Ñ"); continue; }
+      if (raw === "Ñ" && !EN) { out.push("Ñ"); continue; }
       const c = raw.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       if (pos[c]) out.push(c);
       else if (c === " ") out.push(" ");
@@ -1969,7 +2268,7 @@
       await sleep(step * .8);
       p.el.classList.add("lit");
       knock();
-      written += t === "SÍ" ? "Sí" : t === "NO" ? "No" : t;
+      written += t === "SÍ" ? tr("Sí", "Yes") : t === "NO" ? "No" : t;
       answerEl.textContent = written;
       await sleep(step * .35);
       p.el.classList.remove("lit");
@@ -1987,7 +2286,7 @@
   }
 
   const veil = document.getElementById("veil");
-  const OPENINGS = [
+  const OPENINGS = EN ? OPENINGS_EN : [
     ["Las velas se apagan…", "Algo ha entrado en la habitación.", "No sueltes la tabla."],
     ["Silencio.", "Alguien respira detrás de ti.", "No mires atrás."],
     ["Hace frío de repente.", "La tabla se mueve sola.", "Ya viene la respuesta."],
@@ -2032,16 +2331,16 @@
     // sin la petición entera el espíritu no se presenta
     if (shown.length < PHRASE.length) {
       answerEl.classList.add("idle");
-      answerEl.textContent = "Nadie responde. Primero escribe la petición completa.";
+      answerEl.textContent = tr("Nadie responde. Primero escribe la petición completa.", "Nobody answers. Type the full request first.");
       SFX.susurro();
       petition.focus();
       return;
     }
-    busy = true; askBtn.disabled = true; askBtn.textContent = "El espíritu escribe…";
+    busy = true; askBtn.disabled = true; askBtn.textContent = tr("El espíritu escribe…", "The spirit is writing…");
     if (soundOn) { ensureAudio(); unlockSpeech(); }
     const q = question.value.trim();
     const r = decide();
-    const said0 = r.text === "SÍ" ? "sí" : r.text === "NO" ? "no" : r.text;
+    const said0 = r.text === "SÍ" ? tr("sí", "yes") : r.text === "NO" ? "no" : r.text;
     prepareVoice(said0); // se genera mientras el espíritu deletrea
     await enterSeance();
     const said = await spell(r.text);
@@ -2061,7 +2360,7 @@
     leaveSeance();
 
     const entry = document.createElement("p");
-    const qq = document.createElement("q"); qq.textContent = q || "(silencio)";
+    const qq = document.createElement("q"); qq.textContent = q || tr("(silencio)", "(silence)");
     const aa = document.createElement("span"); aa.textContent = said || "…";
     entry.append(qq, " — ", aa);
     logEl.prepend(entry);
@@ -2069,7 +2368,7 @@
     question.value = "";
     // el espíritu se fue: para la próxima pregunta hay que volver a invocarlo con la petición entera
     keys = []; render();
-    busy = false; askBtn.disabled = false; askBtn.textContent = "Invocar";
+    busy = false; askBtn.disabled = false; askBtn.textContent = tr("Invocar", "Summon");
   });
 
   /* ---------- radar ---------- */
@@ -2086,7 +2385,7 @@
   const rtype = document.getElementById("rtype"), ryear = document.getElementById("ryear");
 
   // 49 demonios: nombre, género, título y sus propias frases
-  const DEMONS = [
+  const DEMONS = EN ? DEMONS_EN : [
     ["Azazel", "m", "el caído del desierto", ["Caí del cielo y aterricé en tu casa", "El desierto me enseñó a esperar", "Tu alma es arena en mis manos", "Nadie me expulsa dos veces"]],
     ["Belial", "m", "el que no tiene amo", ["Yo no obedezco a nadie", "Tus oraciones me dan risa", "Pronto serás mi sirviente", "Rompí todas las cadenas"]],
     ["Asmodeo", "m", "el señor de la ira", ["Tu rabia me alimenta", "Voy a pelear dentro de ti", "Esta casa se llenará de gritos", "Mira cómo tiemblan tus manos"]],
@@ -2139,7 +2438,7 @@
   ];
 
   // 30 almas en pena adultas y 8 niños, con nombres antiguos y año de muerte, y los 49 demonios
-  const SPIRITS = [
+  const SPIRITS = (EN ? SOULS_EN : [
     ["Eleonora", "f", 1893], ["Ermelinda", "f", 1871], ["Clotilde", "f", 1902], ["Rosalía", "f", 1888], ["Amelia", "f", 1919],
     ["Leonor", "f", 1864], ["Ignacia", "f", 1897], ["Brígida", "f", 1856], ["Aurora", "f", 1924], ["Casilda", "f", 1879],
     ["Filomena", "f", 1885], ["Genoveva", "f", 1908], ["Inés", "f", 1847], ["Josefa", "f", 1862], ["Mercedes", "f", 1931],
@@ -2147,9 +2446,9 @@
     ["Aurelio", "m", 1881], ["Fermín", "m", 1905], ["Matías", "m", 1921], ["Anselmo", "m", 1869], ["Bartolomé", "m", 1853],
     ["Damián", "m", 1912], ["Florencio", "m", 1898], ["Gaspar", "m", 1844], ["Ildefonso", "m", 1883], ["Leandro", "m", 1909],
     ["Nicanor", "m", 1866], ["Teodoro", "m", 1901],
-  ].map(([name, g, year]) => ({ name, g, year, demon: false, child: false })).concat(
-    [["Tomasito", "m", 1927, 7], ["Juanito", "m", 1899, 6], ["Pepito", "m", 1921, 8], ["Luisito", "m", 1903, 5],
-     ["Rosita", "f", 1910, 6], ["Marianita", "f", 1933, 7], ["Carmencita", "f", 1888, 9], ["Anita", "f", 1915, 5]]
+  ]).map(([name, g, year]) => ({ name, g, year, demon: false, child: false })).concat(
+    (EN ? KIDS_EN : [["Tomasito", "m", 1927, 7], ["Juanito", "m", 1899, 6], ["Pepito", "m", 1921, 8], ["Luisito", "m", 1903, 5],
+     ["Rosita", "f", 1910, 6], ["Marianita", "f", 1933, 7], ["Carmencita", "f", 1888, 9], ["Anita", "f", 1915, 5]])
       .map(([name, g, year, age]) => ({ name, g, year, age, demon: false, child: true }))
   ).concat(
     DEMONS.map(([name, g, title, lines]) => ({ name, g, title, lines, year: null, demon: true, child: false }))
@@ -2161,21 +2460,21 @@
   function currentSpirit() { return (spirit && spirit.info) || sessionSpirit; }
 
   // lo que dicen los demonios: fuerte, directo y claro
-  const DEMON_LINES = [
+  const DEMON_LINES = EN ? DEMON_LINES_EN : [
     "Tu alma me pertenece", "Arderás conmigo", "Esta casa es mía", "Nadie los va a salvar", "Soy legión",
     "Me llamaron y ya estoy aquí", "Voy a entrar en ti", "Rezar no les sirve", "Veo todos tus pecados", "El fuego los espera",
     "Arrodíllate ante mí", "Ninguno saldrá de aquí", "Tu sangre me llama", "Yo no me iré nunca", "Me alimento de tu miedo",
     "Aquí no hay Dios", "Firmaste con tu nombre", "Te arrastraré conmigo", "Esta noche es mía", "Mírame a los ojos",
   ];
   // lo que dicen las almas en pena: tristes, perdidas, piden ayuda
-  const SOUL_LINES = [
+  const SOUL_LINES = EN ? SOUL_LINES_EN : [
     "Ayúdenme a descansar", "No encuentro la salida", "Tengo frío, ayúdenme", "Quiero volver a casa", "¿Dónde está mi madre?",
     "Recen por mí", "No sé dónde estoy", "Díganle a mi familia que la extraño", "Enciendan una vela por mí", "No me dejen aquí",
     "Llevo tanto tiempo esperando", "Déjenme ir", "Ya no recuerdo mi cara", "Ayúdenme, por favor", "Tengo tanto sueño",
     "Quiero ver la luz", "Nadie me escucha", "Perdónenme", "Libérenme de esta casa", "Me duele todavía",
   ];
   // lo que dicen los niños: juegos, miedo y soledad
-  const CHILD_LINES = [
+  const CHILD_LINES = EN ? CHILD_LINES_EN : [
     "¿Quieres jugar conmigo?", "No encuentro a mi mamá", "Cuenta hasta diez y búscame", "Me escondí debajo de tu cama",
     "¿Por qué nadie juega conmigo?", "El señor de negro me da miedo", "Quiero mi muñeca", "Shh, él nos está escuchando",
     "Ven a jugar a la escalera", "Me duele la garganta de tanto llorar", "Tengo frío, ¿me prestas tu chaleco?",
@@ -2234,7 +2533,7 @@
     calib.hidden = false;
     peopleIn.focus();
     peopleIn.select();
-    setStatus("¿Cuántas personas vivas hay en la habitación?");
+    setStatus(tr("¿Cuántas personas vivas hay en la habitación?", "How many living people are in the room?"));
   }
 
   function beginPlacing(n, names) {
@@ -2247,9 +2546,9 @@
   }
   function updatePlacing() {
     const k = placing.list.length + 1;
-    const who = placing.names[k - 1] || "la persona " + k;
-    placeMsg.textContent = "Toca el radar donde está " + who + " (" + k + " de " + placing.n + ").";
-    setStatus("Ubicando personas vivas… " + placing.list.length + "/" + placing.n);
+    const who = placing.names[k - 1] || tr("la persona ", "person ") + k;
+    placeMsg.textContent = tr("Toca el radar donde está ", "Tap the radar where ") + who + tr("", " is") + " (" + k + tr(" de ", " of ") + placing.n + ").";
+    setStatus(tr("Ubicando personas vivas… ", "Placing the living… ") + placing.list.length + "/" + placing.n);
     rlive.textContent = placing.list.length + "/" + placing.n;
   }
   function finishPlacing() {
@@ -2290,7 +2589,7 @@
     calib.hidden = true; placeBox.hidden = true;
     scopebox.classList.remove("placing");
     [rlive, rghosts, rname, rdist, rbear, rtype, ryear].forEach(el => el.textContent = "—");
-    setStatus("Escaneando… sin lecturas. Alcance 6 m.");
+    setStatus(tr("Escaneando… sin lecturas. Alcance 6 m.", "Scanning… no readings. Range 6 m."));
   }
 
   function startRadar(list) {
@@ -2300,8 +2599,8 @@
     living = list.map(p => ({ a: p.a, r: p.r, a0: p.a, r0: p.r, alpha: 0, name: p.name }));
     rlive.textContent = String(n);
     rghosts.textContent = "0";
-    setStatus("Escaneando el sector… " + n + (n === 1 ? " persona viva." : " personas vivas."));
-    later(() => setStatus("Sector calibrado. Esperando anomalías…"), 2500);
+    setStatus(tr("Escaneando el sector… ", "Scanning the area… ") + n + (n === 1 ? tr(" persona viva.", " living person.") : tr(" personas vivas.", " living people.")));
+    later(() => setStatus(tr("Sector calibrado. Esperando anomalías…", "Area calibrated. Waiting for anomalies…")), 2500);
     later(summonSpirit, rand(6000, 9000));
   }
 
@@ -2309,8 +2608,8 @@
     const info = sessionSpirit; // el mismo que ya estaba respondiendo en la tabla
     spirit = { name: info.name, info, a: rand(0, TAU), r: rand(.75, .95), alpha: 0, seen: false, visible: true };
     rghosts.textContent = "1";
-    if (info.demon) { setStatus("Entidad hostil detectada. No es humana.", true); SFX.estatica(); SFX.grunido(); SFX.retumbo(); }
-    else { setStatus("Anomalía detectada en el borde del alcance.", true); SFX.estatica(); SFX.lamento(); }
+    if (info.demon) { setStatus(tr("Entidad hostil detectada. No es humana.", "Hostile entity detected. It is not human."), true); SFX.estatica(); SFX.grunido(); SFX.retumbo(); }
+    else { setStatus(tr("Anomalía detectada en el borde del alcance.", "Anomaly detected at the edge of range."), true); SFX.estatica(); SFX.lamento(); }
     later(wander, rand(5000, 8000));
   }
 
@@ -2320,26 +2619,26 @@
     if (roll < .18) {
       // se esconde una vuelta o dos
       spirit.visible = false;
-      setStatus("Señal perdida…", true);
+      setStatus(tr("Señal perdida…", "Signal lost…"), true);
       SFX.estatica();
-      later(() => { if (spirit) { spirit.visible = true; setStatus("Ha vuelto.", true); } }, rand(4000, 7000));
+      later(() => { if (spirit) { spirit.visible = true; setStatus(tr("Ha vuelto.", "It's back."), true); } }, rand(4000, 7000));
     } else if (roll < .38) {
       // se acerca al centro: está junto a ti
       const named = living.filter(b => b.name);
       if (named.length && Math.random() < .7) {
         const t = pick(named);
         spirit.a = t.a0 + rand(-.18, .18); spirit.r = Math.min(.98, Math.max(.05, t.r0 + rand(-.06, .06)));
-        setStatus(spirit.name + " está junto a " + t.name + ".", true);
-        if (Math.random() < .5) speak("estoy junto a " + t.name);
+        setStatus(spirit.name + tr(" está junto a ", " is standing next to ") + t.name + ".", true);
+        if (Math.random() < .5) speak(tr("estoy junto a ", "I'm standing next to ") + t.name);
       } else {
         spirit.a = rand(0, TAU); spirit.r = rand(.05, .14);
-        setStatus(spirit.name + " está junto a ti.", true);
+        setStatus(spirit.name + tr(" está junto a ti.", " is right next to you."), true);
       }
       SFX.respiracion(); SFX.grunido();
       later(scare, PERIOD * 1000);
     } else {
       spirit.a = rand(0, TAU); spirit.r = rand(.25, .95);
-      setStatus(spirit.name + " se mueve por la habitación.", true);
+      setStatus(spirit.name + tr(" se mueve por la habitación.", " is moving around the room."), true);
       if (Math.random() < .5) SFX.pasos();
     }
     later(wander, rand(5000, 9000));
@@ -2350,28 +2649,29 @@
     const entry = document.createElement("p");
     const aa = document.createElement("span"); aa.textContent = name.toUpperCase();
     if (info.demon) {
-      entry.append("El radar detecta una entidad demoníaca: ", aa, ", " + info.title + ".");
+      entry.append(tr("El radar detecta una entidad demoníaca: ", "The radar detects a demonic entity: "), aa, ", " + info.title + ".");
       SFX.grunido();
-      speak("Soy " + name + ", " + info.title + ". " + drawLine(info.lines), info);
+      speak(tr("Soy ", "I am ") + name + ", " + info.title + ". " + drawLine(info.lines), info);
     } else {
       if (info.child) {
-        entry.append("El radar detecta " + (info.g === "f" ? "una niña" : "un niño") + " de " + info.age + " años. Dice llamarse ", aa, ", murió en " + info.year + ".");
+        if (EN) entry.append("The radar detects a " + info.age + "-year-old " + (info.g === "f" ? "girl" : "boy") + ". The name given is ", aa, ", died in " + info.year + ".");
+        else entry.append("El radar detecta " + (info.g === "f" ? "una niña" : "un niño") + " de " + info.age + " años. Dice llamarse ", aa, ", murió en " + info.year + ".");
         SFX.cajaDeMusica();
-        speak("Me llamo " + name + ". " + pick(["¿Quieres jugar conmigo?", "No encuentro a mi mamá", "Tengo miedo"]), info);
+        speak(tr("Me llamo ", "My name is ") + name + ". " + pick(EN ? ["Do you want to play with me?", "I can't find my mommy", "I'm scared"] : ["¿Quieres jugar conmigo?", "No encuentro a mi mamá", "Tengo miedo"]), info);
       } else {
-        entry.append("El radar detecta un alma en pena. Dice llamarse ", aa, ", murió en " + info.year + ".");
+        entry.append(tr("El radar detecta un alma en pena. Dice llamarse ", "The radar detects a lost soul. The name given is "), aa, tr(", murió en ", ", died in ") + info.year + ".");
         SFX.campana();
-        speak("Me llamo " + name + ". " + pick(["Ayúdenme a descansar", "No encuentro la salida", "Tengo frío"]), info);
+        speak(tr("Me llamo ", "My name is ") + name + ". " + pick(EN ? ["Help me rest", "I can't find the way out", "I'm cold"] : ["Ayúdenme a descansar", "No encuentro la salida", "Tengo frío"]), info);
       }
     }
     logEl.prepend(entry);
     if (busy) return;
-    busy = true; askBtn.disabled = true; askBtn.textContent = "El espíritu escribe…";
+    busy = true; askBtn.disabled = true; askBtn.textContent = tr("El espíritu escribe…", "The spirit is writing…");
     await spell(name);
     await sleep(800);
     board.classList.remove("possessed");
     moveTo(REST);
-    busy = false; askBtn.disabled = false; askBtn.textContent = "Invocar";
+    busy = false; askBtn.disabled = false; askBtn.textContent = tr("Invocar", "Summon");
   }
 
   function angDist(a, b) { return ((a - b) % TAU + TAU) % TAU; }
@@ -2430,7 +2730,7 @@
     g2.fillStyle = "rgba(170,240,180,.9)";
     g2.beginPath(); g2.moveTo(c, c - 7); g2.lineTo(c - 5, c + 5); g2.lineTo(c + 5, c + 5); g2.closePath(); g2.fill();
     g2.font = "700 " + Math.max(9, w / 34) + "px 'Courier Prime', monospace";
-    g2.fillText("TÚ", c + 8, c + 16);
+    g2.fillText(tr("TÚ", "YOU"), c + 8, c + 16);
 
     if (placing) {
       placing.list.forEach((b, i) => {
@@ -2449,9 +2749,10 @@
         ping(spirit.r < .2 ? 1320 : 880);
         const m = spirit.r * RANGE_M;
         rname.textContent = spirit.name;
-        rtype.textContent = spirit.info.demon ? "Demonio, " + spirit.info.title : spirit.info.child ? (spirit.info.g === "f" ? "Niña" : "Niño") + ", " + spirit.info.age + " años" : "Alma en pena";
+        rtype.textContent = spirit.info.demon ? tr("Demonio, ", "Demon, ") + spirit.info.title
+          : spirit.info.child ? (spirit.info.g === "f" ? tr("Niña", "Girl") : tr("Niño", "Boy")) + ", " + spirit.info.age + tr(" años", " years old") : tr("Alma en pena", "Lost soul");
         ryear.textContent = spirit.info.year ? "† " + spirit.info.year : "—";
-        rdist.textContent = m.toFixed(1).replace(".", ",") + " m";
+        rdist.textContent = (EN ? m.toFixed(1) : m.toFixed(1).replace(".", ",")) + " m";
         rbear.textContent = String(Math.round(spirit.a * 180 / Math.PI)).padStart(3, "0") + "°";
         if (!spirit.seen) { spirit.seen = true; introduce(spirit.name); }
       }
@@ -2485,7 +2786,7 @@
       }
       // rótulo fijo en la parte baja de la pantalla del radar
       if (spirit.seen) {
-        const txt = spirit.visible ? (demon ? "DEMONIO: " : "ALMA: ") + spirit.name.toUpperCase() : "SEÑAL PERDIDA";
+        const txt = spirit.visible ? (demon ? tr("DEMONIO: ", "DEMON: ") : tr("ALMA: ", "SOUL: ")) + spirit.name.toUpperCase() : tr("SEÑAL PERDIDA", "SIGNAL LOST");
         g2.font = Math.max(10, w / 30) + "px 'Courier Prime', monospace";
         const bw = g2.measureText(txt).width;
         const blink = Math.floor(now / 600) % 2 ? 1 : .55;
@@ -2821,7 +3122,8 @@
       sx.fillStyle = "rgba(215,255,220,.85)"; sx.fillText("REC", W - f * 3.9, f * 2);
     }
     const d = new Date(when + t * 1000), p = n => String(n).padStart(2, "0");
-    const ts = p(d.getDate()) + "/" + p(d.getMonth() + 1) + "/" + d.getFullYear() + "  " + p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
+    const day = EN ? d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) : p(d.getDate()) + "/" + p(d.getMonth() + 1) + "/" + d.getFullYear();
+    const ts = day + "  " + p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
     sx.fillStyle = "rgba(215,255,220,.85)";
     sx.fillText(ts, W - sx.measureText(ts).width - f, H - f);
   }
@@ -2842,7 +3144,7 @@
     if (spec && spec.url) URL.revokeObjectURL(spec.url);
     spec = null;
   }
-  const IDLE_MSG = "Graba unos segundos de la habitación o toma una foto. La cámara capta lo que el ojo no ve.";
+  const IDLE_MSG = tr("Graba unos segundos de la habitación o toma una foto. La cámara capta lo que el ojo no ve.", "Record a few seconds of the room or take a photo. The camera catches what the eye can't see.");
   function closeSpec() {
     stopCam();
     stopSpec();
@@ -2851,7 +3153,7 @@
   }
   function showTools(cur) {
     if (spec !== cur) return;
-    saveBtn.textContent = cur.kind === "photo" ? "Guardar foto" : "Guardar video";
+    saveBtn.textContent = cur.kind === "photo" ? tr("Guardar foto", "Save photo") : tr("Guardar video", "Save video");
     saveBtn.hidden = !cur.out;
     spectools.hidden = false;
   }
@@ -2859,13 +3161,13 @@
   // ---- foto ----
   async function spectralPhoto(file, when) {
     stopCam(); stopSpec();
-    sStatus("Procesando…");
+    sStatus(tr("Procesando…", "Processing…"));
     const url = URL.createObjectURL(file);
     const img = new Image();
     const ok = await new Promise(res => { img.onload = () => res(true); img.onerror = () => res(false); img.src = url; });
     if (!ok || !img.naturalWidth) {
       URL.revokeObjectURL(url);
-      sStatus("Este teléfono no pudo abrir esa foto (" + (file.type || "formato desconocido") + "). Prueba sacando la foto de nuevo o eligiendo otra.", true);
+      sStatus(tr("Este teléfono no pudo abrir esa foto (", "This phone couldn't open that photo (") + (file.type || tr("formato desconocido", "unknown format")) + tr("). Prueba sacando la foto de nuevo o eligiendo otra.", "). Try taking the photo again or choosing another one."), true);
       return;
     }
     fitCanvas(img.naturalWidth, img.naturalHeight, 2048);
@@ -2885,7 +3187,7 @@
     camHud(0, cur.when, false);
     cur.out = await new Promise(res => sc.toBlob(res, "image/jpeg", .93));
     cur.name = "IMG_" + stampOf(cur.when) + ".jpg";
-    sStatus("Foto lista. Mírala con calma.");
+    sStatus(tr("Foto lista. Mírala con calma.", "Photo ready. Take a good look at it."));
     showTools(cur);
   }
 
@@ -2911,7 +3213,7 @@
     const url = URL.createObjectURL(file);
     spec = { kind: "video", url, src: svid, durHint, when: when || Date.now() };
     const cur = spec;
-    sStatus("Cargando el video…");
+    sStatus(tr("Cargando el video…", "Loading the video…"));
     specframe.hidden = false; spectools.hidden = true; livetools.hidden = true;
     videoAudio(false);
     svid.srcObject = null;
@@ -2928,7 +3230,7 @@
     if (spec !== cur) return;
     if (!ready || !svid.videoWidth) {
       specframe.hidden = true;
-      sStatus("Este teléfono no pudo reproducir ese video (" + (file.type || "formato desconocido") + "). Prueba grabando uno más corto o usa la foto.", true);
+      sStatus(tr("Este teléfono no pudo reproducir ese video (", "This phone couldn't play that video (") + (file.type || tr("formato desconocido", "unknown format")) + tr("). Prueba grabando uno más corto o usa la foto.", "). Try recording a shorter one, or use the photo."), true);
       return;
     }
     svid.pause();
@@ -2973,7 +3275,7 @@
     const len = Math.min(rnd(1.3, 2.3), Math.max(.8, dur * .4));
     const a = Math.max(.5, Math.min(dur - len - .3, dur * rnd(.35, .55)));
     cur.done = false; cur.exp = null;
-    sStatus("Reproduciendo…");
+    sStatus(tr("Reproduciendo…", "Playing…"));
     svid.currentTime = 0;
     startExport(cur);
     svid.play().catch(() => { svid.muted = true; svid.play().catch(() => {}); });
@@ -3003,7 +3305,7 @@
           cur.done = true;
           videoAudio(false);
           if (cur.exp && cur.exp.state !== "inactive") cur.exp.stop();
-          sStatus("Video listo. Revísalo cuadro por cuadro si hace falta.");
+          sStatus(tr("Video listo. Revísalo cuadro por cuadro si hace falta.", "Video ready. Go through it frame by frame if you need to."));
           showTools(cur);
         }
         return;
@@ -3029,14 +3331,14 @@
   async function openCamera(mode) {
     stopCam(); stopSpec();
     camFallback.hidden = true;
-    sStatus("Pidiendo permiso para usar la cámara…");
+    sStatus(tr("Pidiendo permiso para usar la cámara…", "Asking permission to use the camera…"));
     const video = { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } };
     let stream;
     try {
       // con micrófono, para que el video tenga el sonido real de la pieza
       stream = await navigator.mediaDevices.getUserMedia({ video, audio: mode === "video" }).catch(() => navigator.mediaDevices.getUserMedia({ video, audio: false }));
     } catch (e) {
-      sStatus("La cámara no se pudo abrir dentro de la app. Pulsa «Usar la cámara del teléfono».", true);
+      sStatus(tr("La cámara no se pudo abrir dentro de la app. Pulsa «Usar la cámara del teléfono».", "The camera couldn't be opened inside the app. Press “Use the phone's camera”."), true);
       camFallback.hidden = false;
       return;
     }
@@ -3048,10 +3350,12 @@
     if (cam !== c) return;
     fitCanvas(svid.videoWidth || 1280, svid.videoHeight || 720, 1280);
     specframe.hidden = false; spectools.hidden = true; livetools.hidden = false;
-    recGo.textContent = "● Grabar";
+    recGo.textContent = tr("● Grabar", "● Record");
     recGo.hidden = false; snapBtn.hidden = false; nightBtn.hidden = false;
     specframe.scrollIntoView({ behavior: "smooth", block: "center" });
-    sStatus(mode === "photo" ? "Apunta a la parte más oscura de la pieza y pulsa «Tomar foto»." : "Apunta a la parte más oscura de la pieza y pulsa «Grabar».");
+    sStatus(mode === "photo"
+      ? tr("Apunta a la parte más oscura de la pieza y pulsa «Tomar foto».", "Point at the darkest part of the room and press “Take photo”.")
+      : tr("Apunta a la parte más oscura de la pieza y pulsa «Grabar».", "Point at the darkest part of the room and press “Record”."));
     const loop = now => {
       if (cam !== c) return;
       const t = c.rec ? (now - c.t0) / 1000 : 0;
@@ -3069,13 +3373,13 @@
     const mime = pickMime();
     let rec;
     try { rec = mime ? new MediaRecorder(c.stream, { mimeType: mime }) : new MediaRecorder(c.stream); }
-    catch (e) { sStatus("Este navegador no permite grabar aquí. Pulsa «Usar la cámara del teléfono».", true); camFallback.hidden = false; return; }
+    catch (e) { sStatus(tr("Este navegador no permite grabar aquí. Pulsa «Usar la cámara del teléfono».", "This browser can't record here. Press “Use the phone's camera”."), true); camFallback.hidden = false; return; }
     c.rec = rec; c.chunks = []; c.t0 = performance.now(); c.when = Date.now();
     snapBtn.hidden = true; nightBtn.hidden = true; // mientras graba no se cambia nada
     rec.ondataavailable = e => { if (e.data && e.data.size) c.chunks.push(e.data); };
     rec.start(250);
-    recGo.textContent = "■ Detener";
-    sStatus("Grabando… quédate quieto y en silencio.", true);
+    recGo.textContent = tr("■ Detener", "■ Stop");
+    sStatus(tr("Grabando… quédate quieto y en silencio.", "Recording… stay still and keep quiet."), true);
   }
   function finishRecording() {
     const c = cam; if (!c || !c.rec || c.rec.state === "inactive" || c.stopping) return;
@@ -3085,7 +3389,7 @@
       const blob = new Blob(c.chunks, { type: c.rec.mimeType || "video/webm" });
       stopCam();
       livetools.hidden = true;
-      if (!blob.size) { sStatus("La grabación quedó vacía. Intenta de nuevo.", true); return; }
+      if (!blob.size) { sStatus(tr("La grabación quedó vacía. Intenta de nuevo.", "The recording came out empty. Try again."), true); return; }
       spectralVideo(blob, secs, c.when);
     };
     c.rec.stop();
@@ -3100,7 +3404,7 @@
     const blob = await new Promise(res => shot.toBlob(res, "image/jpeg", .95));
     stopCam();
     livetools.hidden = true;
-    if (!blob) { sStatus("No se pudo tomar la foto. Intenta de nuevo.", true); return; }
+    if (!blob) { sStatus(tr("No se pudo tomar la foto. Intenta de nuevo.", "The photo couldn't be taken. Try again."), true); return; }
     spectralPhoto(blob, Date.now());
   }
 
@@ -3115,10 +3419,10 @@
     const name = cur.name;
     const dl = await getDownloads();
     if (dl) {
-      try { await dl.save({ filename: name, data: cur.out }); sStatus("Guardado como " + name + "."); return; }
+      try { await dl.save({ filename: name, data: cur.out }); sStatus(tr("Guardado como ", "Saved as ") + name + "."); return; }
       catch (e) {
         if (e && e.code === "declined") return;
-        if (e && e.code === "rate_limited") { sStatus("Espera un momento y vuelve a intentar.", true); return; }
+        if (e && e.code === "rate_limited") { sStatus(tr("Espera un momento y vuelve a intentar.", "Wait a moment and try again."), true); return; }
       }
     }
     try {
@@ -3134,7 +3438,7 @@
   const photoIn = document.getElementById("photoIn"), videoIn = document.getElementById("videoIn"), videoCam = document.getElementById("videoCam");
   const photoCam = document.getElementById("photoCam"), snapBtn = document.getElementById("snap");
   const saveBtn = document.getElementById("specsave"), nightBtn = document.getElementById("night");
-  const paintNight = () => { nightBtn.textContent = "Visión nocturna: " + (nightMode ? "sí" : "no"); nightBtn.setAttribute("aria-pressed", String(nightMode)); };
+  const paintNight = () => { nightBtn.textContent = tr("Visión nocturna: ", "Night vision: ") + (nightMode ? tr("sí", "on") : tr("no", "off")); nightBtn.setAttribute("aria-pressed", String(nightMode)); };
   paintNight();
   nightBtn.addEventListener("click", () => {
     nightMode = !nightMode; paintNight();
@@ -3167,12 +3471,12 @@
   document.getElementById("reccancel").addEventListener("click", closeSpec);
   document.getElementById("photoBtn").addEventListener("click", () => {
     armSound();
-    sStatus("Elige una foto de la galería.");
+    sStatus(tr("Elige una foto de la galería.", "Choose a photo from the gallery."));
     photoIn.click();
   });
   document.getElementById("videoBtn").addEventListener("click", () => {
     armSound();
-    sStatus("Elige un video de la galería.");
+    sStatus(tr("Elige un video de la galería.", "Choose a video from the gallery."));
     videoIn.click();
   });
   [photoIn, photoCam].forEach(inp => inp.addEventListener("change", e => {
@@ -3211,6 +3515,7 @@
     "garcilaso sasha misha dimitri ali akira kenji mustafa idris ezra").split(" "));
   const strip = s => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   function guessGender(full) {
+    if (EN) return guessGenderEN(full);
     const words = full.trim().split(/\s+/).map(w => w.toLowerCase());
     if (FEM_TITLES.test(words[0])) return "f";
     if (MASC_TITLES.test(words[0])) return "m";
@@ -3236,7 +3541,7 @@
     if (sp.child) sp.age = 5 + hashYear(name) % 5;
     if (sp.demon) {
       const kd = known && known.demon ? known : null;
-      sp.title = kd ? kd.title : g === "f" ? "la que vino sin ser llamada" : "el que vino sin ser llamado";
+      sp.title = kd ? kd.title : EN ? "the one who came uninvited" : g === "f" ? "la que vino sin ser llamada" : "el que vino sin ser llamado";
       sp.lines = kd ? kd.lines : DEMON_LINES;
       sp.year = null;
     }
@@ -3245,14 +3550,15 @@
   function paintSp() {
     const typed = !!spName.value.trim();
     const g = spChosenG || (typed ? guessGender(spName.value) : "m");
-    spG.textContent = "Voz: " + (g === "f" ? "mujer" : "hombre") + (spChosenG ? " (a mano)" : typed ? " (detectada)" : "");
+    spG.textContent = tr("Voz: ", "Voice: ") + (g === "f" ? tr("mujer", "woman") : tr("hombre", "man")) + (spChosenG ? tr(" (a mano)", " (set by hand)") : typed ? tr(" (detectada)", " (detected)") : "");
     spG.setAttribute("aria-pressed", String(!!spChosenG));
     spHint.textContent = "";
     if (customSpirit) {
       const b = document.createElement("b"); b.textContent = customSpirit.name;
-      const what = customSpirit.demon ? "demonio" : customSpirit.child ? (customSpirit.g === "f" ? "niña" : "niño") : "alma en pena";
-      spHint.append("Ahora responde ", b, " (" + what + ", voz de " + (customSpirit.g === "f" ? "mujer" : "hombre") + ").");
-    } else spHint.textContent = "Sin nombre, en cada sesión llega un espíritu al azar.";
+      const what = customSpirit.demon ? tr("demonio", "demon") : customSpirit.child ? (customSpirit.g === "f" ? tr("niña", "girl") : tr("niño", "boy")) : tr("alma en pena", "lost soul");
+      if (EN) spHint.append("Now answering: ", b, " (" + what + ", " + (customSpirit.g === "f" ? "woman's" : "man's") + " voice).");
+      else spHint.append("Ahora responde ", b, " (" + what + ", voz de " + (customSpirit.g === "f" ? "mujer" : "hombre") + ").");
+    } else spHint.textContent = tr("Sin nombre, en cada sesión llega un espíritu al azar.", "With no name, each session brings a random spirit.");
   }
   function applyCustom(save) {
     customSpirit = buildCustom();
@@ -3281,8 +3587,8 @@
     if (!soundOn) soundBtn.click();
     armAudio(); ensureAudio(); unlockSpeech();
     const sp = customSpirit || currentSpirit();
-    const t = sp.demon ? "Soy " + sp.name : "Me llamo " + sp.name;
-    if (neural.on && NEURAL[neural.pack].m.mms && genderOf(sp) === "m") spHint.textContent = "Generando la voz chilena… la primera vez puede tardar hasta un minuto.";
+    const t = sp.demon ? tr("Soy ", "I am ") + sp.name : tr("Me llamo ", "My name is ") + sp.name;
+    if (neural.on && NEURAL[neural.pack].m.mms && genderOf(sp) === "m") spHint.textContent = tr("Generando la voz chilena… la primera vez puede tardar hasta un minuto.", "Generating the voice… the first time can take up to a minute.");
     speak(t, sp, { patient: true });
     if (neural.on) setTimeout(paintSp, 4000);
   });
@@ -3290,8 +3596,8 @@
   /* ---------- panel: voz realista ---------- */
   const vozPack = document.getElementById("vozPack"), vozGet = document.getElementById("vozGet");
   const vozOn = document.getElementById("vozOn"), vozHint = document.getElementById("vozHint");
-  const VOZ_KEY = "almas-voz";
-  const VOZ_IDLE = "Se descarga una sola vez (mejor con wifi) y queda guardada en el teléfono.";
+  const VOZ_KEY = EN ? "almas-voz-en" : "almas-voz"; // cada idioma recuerda su voz
+  const VOZ_IDLE = tr("Se descarga una sola vez (mejor con wifi) y queda guardada en el teléfono.", "It downloads once (Wi-Fi recommended) and stays saved on the phone.");
   async function vozReady(pack) { return (await Promise.all(packFiles(pack).map(isCached))).every(Boolean); }
   function saveVoz() { try { localStorage.setItem(VOZ_KEY, JSON.stringify({ pack: vozPack.value, on: vozOn.checked })); } catch (e) {} }
   async function refreshVoz() {
@@ -3301,7 +3607,9 @@
     vozGet.hidden = ready; vozOn.disabled = !ready;
     neural.pack = ready ? pack : null;
     neural.on = ready && vozOn.checked;
-    vozHint.textContent = !ready ? VOZ_IDLE : neural.on ? "Voz realista lista: el espíritu habla con voz humana." : "Voz descargada. Marca la casilla para usarla.";
+    vozHint.textContent = !ready ? VOZ_IDLE : neural.on
+      ? tr("Voz realista lista: el espíritu habla con voz humana.", "Realistic voice ready: the spirit speaks with a human voice.")
+      : tr("Voz descargada. Marca la casilla para usarla.", "Voice downloaded. Tick the box to use it.");
     if (neural.on && armed) warmVoz();
   }
   // deja los modelos cargados en los procesos de voz para que la primera frase no demore
@@ -3311,16 +3619,16 @@
     vozWorker("piper").call({ kind: "warm", paths: [...new Set(paths)], prio: 9 }).catch(() => {});
     if (P.m.mms) vozWorker("mms").call({ kind: "warm", mms: true, prio: 9 }).catch(() => {});
   }
-  try { const sv = JSON.parse(localStorage.getItem(VOZ_KEY) || "null"); if (sv && NEURAL[sv.pack]) { vozPack.value = sv.pack; vozOn.checked = !!sv.on; } } catch (e) {}
+  try { const sv = JSON.parse(localStorage.getItem(VOZ_KEY) || "null"); if (sv && PACKS.includes(sv.pack)) { vozPack.value = sv.pack; vozOn.checked = !!sv.on; } } catch (e) {}
   refreshVoz();
   vozPack.addEventListener("change", () => { saveVoz(); refreshVoz(); });
   vozOn.addEventListener("change", () => { saveVoz(); refreshVoz(); });
   vozGet.addEventListener("click", async () => {
-    if (!window.caches) { vozHint.textContent = "Este navegador no permite guardar la voz."; return; }
+    if (!window.caches) { vozHint.textContent = tr("Este navegador no permite guardar la voz.", "This browser can't store the voice."); return; }
     const pack = vozPack.value, total = (NEURAL[pack].mb + 18.7) * 1e6;
     vozCache.clear();
     let got = 0;
-    const tick = n => { got += n; vozHint.textContent = "Descargando la voz… " + Math.min(99, Math.round(got / total * 100)) + " %. No cierres la app."; };
+    const tick = n => { got += n; vozHint.textContent = tr("Descargando la voz… ", "Downloading the voice… ") + Math.min(99, Math.round(got / total * 100)) + tr(" %. No cierres la app.", "%. Don't close the app."); };
     vozGet.disabled = true; vozPack.disabled = true;
     try {
       if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
@@ -3329,7 +3637,7 @@
       await refreshVoz();
     } catch (e) {
       console.warn("voz realista:", e);
-      vozHint.textContent = "No se pudo descargar la voz. Revisa la conexión e inténtalo de nuevo.";
+      vozHint.textContent = tr("No se pudo descargar la voz. Revisa la conexión e inténtalo de nuevo.", "The voice couldn't be downloaded. Check your connection and try again.");
     } finally { vozGet.disabled = false; vozPack.disabled = false; }
   });
 
@@ -3339,15 +3647,15 @@
   function readPresent() {
     panelNames = presIn.value.split(/[,;\n]+/).map(x => x.trim().replace(/\s+/g, " ").slice(0, 30)).filter(Boolean).slice(0, 12);
     presHint.textContent = panelNames.length
-      ? "El espíritu conoce a: " + panelNames.join(", ") + "."
-      : "Escribe los nombres de los que están jugando, separados por coma.";
+      ? tr("El espíritu conoce a: ", "The spirit knows: ") + panelNames.join(", ") + "."
+      : tr("Escribe los nombres de los que están jugando, separados por coma.", "Type the names of the players, separated by commas.");
   }
   try { presIn.value = localStorage.getItem(PRES_KEY) || ""; } catch (e) {}
   readPresent();
   presIn.addEventListener("input", () => { readPresent(); try { localStorage.setItem(PRES_KEY, presIn.value); } catch (e) {} });
   document.getElementById("sayName").addEventListener("click", () => {
     const t = personalLine();
-    if (!t) { presHint.textContent = "Primero escribe al menos un nombre."; presIn.focus(); return; }
+    if (!t) { presHint.textContent = tr("Primero escribe al menos un nombre.", "Type at least one name first."); presIn.focus(); return; }
     if (!soundOn) soundBtn.click();
     armAudio();
     spontaneous(true, t);
@@ -3475,7 +3783,7 @@
     call = { msg: msg || spectralMessage(), ghost: ghost || currentSpirit().name, cycles: 0, answered: false };
     blackout.hidden = true;
     callEl.hidden = false; callEl.className = "call ringing";
-    callLabel.textContent = "Llamada entrante…"; callName.textContent = "Desconocido"; callNum.textContent = "Número privado";
+    callLabel.textContent = tr("Llamada entrante…", "Incoming call…"); callName.textContent = tr("Desconocido", "Unknown"); callNum.textContent = tr("Número privado", "Private number");
     callWave.hidden = true; callMsg.textContent = "";
     callBtns.hidden = false; callEndWrap.hidden = true;
     const ring = () => {
@@ -3508,7 +3816,7 @@
     stopRinging();
     armAudio(); ensureAudio();
     callEl.className = "call active";
-    callLabel.textContent = auto ? "La llamada se contestó sola" : "En llamada";
+    callLabel.textContent = auto ? tr("La llamada se contestó sola", "The call answered itself") : tr("En llamada", "On call");
     callBtns.hidden = true; callEndWrap.hidden = false; callWave.hidden = false;
     setSpeaker(false);
     const t0 = Date.now();
@@ -3552,7 +3860,7 @@
     }
     clearInterval(cur.timer); cur.stopNoise && cur.stopNoise();
     setPhoneMode("normal"); callHint.hidden = true;
-    callLabel.textContent = "Llamada finalizada";
+    callLabel.textContent = tr("Llamada finalizada", "Call ended");
     callWave.hidden = true; callEndWrap.hidden = true;
     setTimeout(() => {
       if (call !== cur) return;
@@ -3579,7 +3887,7 @@
   ["pointerup", "pointerleave", "pointercancel"].forEach(ev => blackout.addEventListener(ev, () => clearTimeout(blackPress)));
 
   /* ---------- el espíritu habla solo ---------- */
-  const SAYINGS = [
+  const SAYINGS = EN ? SAYINGS_EN : [
     "Sé que me estás escuchando",
     "No apagues la luz",
     "Alguien más está en esta casa",
@@ -3657,7 +3965,7 @@
     keys = []; render(); question.value = "";
     logEl.textContent = "";
     answerEl.classList.add("idle");
-    answerEl.textContent = "La tabla espera tu pregunta.";
+    answerEl.textContent = tr("La tabla espera tu pregunta.", "The board is waiting for your question.");
     moveTo(REST);
     if (callOnClose.checked) fakeShutdown(callText, ghost);
     else petition.focus();
