@@ -1,10 +1,12 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" translate="no" class="notranslate">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Detector de Almas en Pena de Uncle Chicken, Laura y Fernanda</title>
 <meta name="description" content="Tablero de espiritismo, radar de presencias y cámara espectral.">
+<!-- la app trae su propio inglés: que el navegador no la traduzca de vuelta al español -->
+<meta name="google" content="notranslate">
 <meta name="theme-color" content="#07060a">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png" type="image/png">
@@ -812,6 +814,11 @@
      tr(es, en) devuelve el texto del idioma activo. Los textos fijos de la página están en español
      en el HTML y, en inglés, los reemplaza englishPage(). */
   const LANG = (() => {
+    // el idioma recién elegido viaja en la dirección (?lang=en), por si el teléfono no deja guardarlo
+    try {
+      const q = new URLSearchParams(location.search).get("lang");
+      if (q === "es" || q === "en") { try { localStorage.setItem("almas-lang", q); } catch (e) {} return q; }
+    } catch (e) {}
     try { const s = localStorage.getItem("almas-lang"); if (s === "es" || s === "en") return s; } catch (e) {}
     return /^en/i.test(navigator.language || "") ? "en" : "es";
   })();
@@ -1078,8 +1085,9 @@
   if (EN) englishPage();
   // cambiar de idioma recarga la página; la marca evita que la portada vuelva a salir tras la recarga
   function setLang(l) {
-    try { localStorage.setItem("almas-lang", l); sessionStorage.setItem("almas-entro", "1"); } catch (e) {}
-    location.reload();
+    try { localStorage.setItem("almas-lang", l); } catch (e) {}
+    try { sessionStorage.setItem("almas-entro", "1"); } catch (e) {}
+    location.replace(location.pathname + "?lang=" + l + "&entro=1");
   }
   // botón de idioma
   const langBtn = document.getElementById("langBtn");
@@ -1124,6 +1132,11 @@
     const cover = document.getElementById("cover");
     let skip = false;
     try { skip = sessionStorage.getItem("almas-entro") === "1" || !!localStorage.getItem("almas-llamada"); sessionStorage.removeItem("almas-entro"); } catch (e) {}
+    // la recarga por cambio de idioma también lo avisa en la dirección; se limpia para que al volver a entrar salga la portada
+    try {
+      const q = new URLSearchParams(location.search);
+      if (q.get("entro") === "1") { skip = true; history.replaceState(null, "", location.pathname); }
+    } catch (e) {}
     if (skip) return;
     cover.hidden = false;
     cover.addEventListener("click", e => {
