@@ -1,4 +1,4 @@
-# Detector de Almas en Pena
+# Detector de Almas en Pena de Uncle Chicken, Laura y Fernanda
 
 App de broma de terror para jugar con amigos: tablero de espiritismo, radar de presencias,
 llamada fantasma y cámara espectral. PWA de un solo `index.html`, sin build y sin backend;

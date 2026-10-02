@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Detector de Almas en Pena</title>
+<title>Detector de Almas en Pena de Uncle Chicken, Laura y Fernanda</title>
 <meta name="description" content="Tablero de espiritismo, radar de presencias y cámara espectral.">
 <meta name="theme-color" content="#07060a">
 <link rel="manifest" href="manifest.json">
@@ -88,6 +88,50 @@
     animation: breathe 7s ease-in-out infinite;
   }
   @keyframes breathe { 50% { text-shadow: 0 0 30px rgba(200,57,45,.7), 0 2px 0 var(--blood); letter-spacing: .01em; } }
+  .byline {
+    margin: 0; font-family: var(--type); font-size: .85rem; letter-spacing: .1em; text-transform: uppercase; color: var(--candle);
+  }
+  /* ----- portada: la foto, el nombre y la elección de idioma ----- */
+  .cover {
+    position: fixed; inset: 0; z-index: 40; background: #050406; overflow: hidden;
+    display: flex; flex-direction: column; justify-content: flex-end; align-items: center;
+    opacity: 1; transition: opacity .9s ease;
+  }
+  .cover[hidden] { display: none; }
+  .cover.out { opacity: 0; pointer-events: none; }
+  .cover img {
+    /* en teléfonos la foto ocupa todo el ancho (se ven los tres) y se funde hacia abajo; en pantallas anchas llena el alto */
+    position: absolute; top: 0; left: 0; width: 100%; height: min(100%, 132vw); max-width: none;
+    object-fit: cover; object-position: 50% 22%;
+    -webkit-mask-image: linear-gradient(to bottom, #000 62%, transparent 100%); mask-image: linear-gradient(to bottom, #000 62%, transparent 100%);
+    animation: coverin 2.4s ease-out both;
+  }
+  @keyframes coverin { from { opacity: 0; transform: scale(1.06); } to { opacity: 1; transform: none; } }
+  .cover::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(to bottom, rgba(5,4,6,.35) 0%, rgba(5,4,6,0) 16%, rgba(5,4,6,0) 48%, rgba(5,4,6,.85) 74%, #050406 100%);
+  }
+  .cover-box {
+    position: relative; z-index: 1; width: 100%; max-width: 560px; box-sizing: border-box; text-align: center;
+    padding: 0 20px calc(env(safe-area-inset-bottom, 0px) + 28px);
+    display: flex; flex-direction: column; gap: 10px; align-items: center;
+  }
+  .cover-title {
+    margin: 0; font-family: var(--display); font-weight: 900; line-height: 1.08; text-wrap: balance;
+    font-size: clamp(1.7rem, 7.4vw, 2.7rem); color: var(--bone);
+    text-shadow: 0 0 18px rgba(200,57,45,.6), 0 2px 0 var(--blood), 0 0 2px #000;
+  }
+  .cover-title small {
+    display: block; margin-top: 4px; font-size: .5em; font-weight: 700; letter-spacing: .12em; color: var(--bone-dim); text-shadow: 0 0 2px #000;
+  }
+  .cover-by { margin: 0; font-family: var(--type); font-size: .95rem; letter-spacing: .08em; text-transform: uppercase; color: var(--candle); text-shadow: 0 0 2px #000; }
+  .cover-ask { margin: 8px 0 0; font-style: italic; color: var(--bone-dim); }
+  .cover-btns { display: flex; gap: 12px; width: 100%; }
+  .cover-btns button {
+    flex: 1; padding: 15px 10px; font-size: 1rem; font-weight: 700;
+    background: rgba(122,15,20,.88); color: var(--bone); border: 1px solid var(--ember);
+  }
+  .cover-btns button:hover { background: var(--ember); box-shadow: 0 0 22px rgba(200,57,45,.55); }
   .langbtn {
     align-self: center; margin-top: 6px; padding: 6px 14px; font-size: .75rem;
     background: transparent; color: var(--bone-dim); border: 1px solid #3a2a2e;
@@ -515,11 +559,25 @@
 </div>
 <div class="eyes" id="eyes" aria-hidden="true"><i></i><i></i></div>
 
+<div class="cover" id="cover" role="dialog" aria-label="Detector de Almas en Pena de Uncle Chicken, Laura y Fernanda" hidden>
+  <img src="portada.jpg" alt="Uncle Chicken, Laura y Fernanda" decoding="async">
+  <div class="cover-box">
+    <p class="cover-title">Detector de Almas en Pena<small>Lost Souls Detector</small></p>
+    <p class="cover-by">Uncle Chicken, Laura y Fernanda</p>
+    <p class="cover-ask">Elige tu idioma · Choose your language</p>
+    <div class="cover-btns">
+      <button type="button" data-lang="es">Español</button>
+      <button type="button" data-lang="en">English</button>
+    </div>
+  </div>
+</div>
+
 <div class="closing" id="closing"></div>
 <main class="wrap" id="wrap">
   <div class="veil" id="veil" aria-live="polite"></div>
   <header>
     <h1>Detector de Almas en Pena</h1>
+    <p class="byline" id="byline">de Uncle Chicken, Laura y Fernanda</p>
     <p class="sub">Escribe la petición completa, luego tu pregunta. Si lo pides con respeto, el espíritu moverá la tabla.</p>
     <button type="button" class="langbtn" id="langBtn" aria-label="Idioma / Language">English</button>
   </header>
@@ -903,7 +961,7 @@
   // textos fijos de la página en inglés
   function englishPage() {
     document.documentElement.lang = "en";
-    document.title = "Lost Souls Detector";
+    document.title = "Lost Souls Detector by Uncle Chicken, Laura y Fernanda";
     const $ = s => document.querySelector(s);
     const T = (sel, text) => { const el = $(sel); if (el) el.textContent = text; };
     const H = (sel, html) => { const el = $(sel); if (el) el.innerHTML = html; };
@@ -919,6 +977,7 @@
     T("#callHint", "Hold the phone to your ear");
     // encabezado y tablero
     T("header h1", "Lost Souls Detector");
+    T("#byline", "by Uncle Chicken, Laura y Fernanda");
     T("header .sub", "Type the full request, then your question. If you ask with respect, the spirit will move the board.");
     A("#board", "aria-label", "Spirit board");
     T("#answer", "The board is waiting for your question.");
@@ -990,13 +1049,31 @@
     document.querySelectorAll("#soundboard button[data-sfx]").forEach(b => { if (SFX_EN[b.dataset.sfx]) b.textContent = SFX_EN[b.dataset.sfx]; });
   }
   if (EN) englishPage();
+  // cambiar de idioma recarga la página; la marca evita que la portada vuelva a salir tras la recarga
+  function setLang(l) {
+    try { localStorage.setItem("almas-lang", l); sessionStorage.setItem("almas-entro", "1"); } catch (e) {}
+    location.reload();
+  }
   // botón de idioma
   const langBtn = document.getElementById("langBtn");
   langBtn.textContent = tr("English", "Español");
-  langBtn.addEventListener("click", () => {
-    try { localStorage.setItem("almas-lang", EN ? "es" : "en"); } catch (e) {}
-    location.reload();
-  });
+  langBtn.addEventListener("click", () => setLang(EN ? "es" : "en"));
+
+  // portada: aparece cada vez que se entra a la app (la foto, el nombre y la elección de idioma).
+  // No sale tras cambiar de idioma ni cuando hay una llamada fantasma pendiente, para no taparla.
+  (() => {
+    const cover = document.getElementById("cover");
+    let skip = false;
+    try { skip = sessionStorage.getItem("almas-entro") === "1" || !!localStorage.getItem("almas-llamada"); sessionStorage.removeItem("almas-entro"); } catch (e) {}
+    if (skip) return;
+    cover.hidden = false;
+    cover.addEventListener("click", e => {
+      const b = e.target.closest("button[data-lang]"); if (!b) return;
+      if (b.dataset.lang !== LANG) { setLang(b.dataset.lang); return; }
+      cover.classList.add("out");
+      setTimeout(() => { cover.hidden = true; }, 950);
+    });
+  })();
 
   const PHRASE = tr("Espíritu, por favor responde la siguiente pregunta:", "Spirit, please answer the following question:");
   const board = document.getElementById("board");
