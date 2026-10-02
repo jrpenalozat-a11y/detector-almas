@@ -107,6 +107,9 @@
     animation: coverin 2.4s ease-out both;
   }
   @keyframes coverin { from { opacity: 0; transform: scale(1.06); } to { opacity: 1; transform: none; } }
+  /* la segunda foto va encima y aparece y desaparece con un fundido lento */
+  .cover img.b { opacity: 0; object-position: 50% 8%; animation: coverswap 14s ease-in-out 3.5s infinite; }
+  @keyframes coverswap { 0%, 100% { opacity: 0; } 18%, 50% { opacity: 1; } 68% { opacity: 0; } }
   .cover::after {
     content: ""; position: absolute; inset: 0; pointer-events: none;
     background: linear-gradient(to bottom, rgba(5,4,6,.35) 0%, rgba(5,4,6,0) 16%, rgba(5,4,6,0) 48%, rgba(5,4,6,.85) 74%, #050406 100%);
@@ -131,6 +134,14 @@
     flex: 1; padding: 15px 10px; font-size: 1rem; font-weight: 700;
     background: rgba(122,15,20,.88); color: var(--bone); border: 1px solid var(--ember);
   }
+  .cover-install {
+    width: 100%; padding: 12px 10px; font-size: .85rem;
+    background: rgba(7,6,10,.7); color: var(--candle); border: 1px solid var(--candle);
+  }
+  .cover-install:hover { background: rgba(227,165,78,.14); }
+  .cover-install[hidden], .cover-tip[hidden], .install-tip[hidden], .langbtn[hidden] { display: none; }
+  .cover-tip, .install-tip { white-space: pre-line; margin: 0; font-size: .95rem; line-height: 1.4; color: var(--bone); max-width: 40ch; margin-inline: auto; text-wrap: balance; }
+  .head-btns { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
   .cover-btns button:hover { background: var(--ember); box-shadow: 0 0 22px rgba(200,57,45,.55); }
   .langbtn {
     align-self: center; margin-top: 6px; padding: 6px 14px; font-size: .75rem;
@@ -561,6 +572,7 @@
 
 <div class="cover" id="cover" role="dialog" aria-label="Detector de Almas en Pena de Uncle Chicken, Laura y Fernanda" hidden>
   <img src="portada.jpg" alt="Uncle Chicken, Laura y Fernanda" decoding="async">
+  <img class="b" src="portada2.jpg" alt="" decoding="async">
   <div class="cover-box">
     <p class="cover-title">Detector de Almas en Pena<small>Lost Souls Detector</small></p>
     <p class="cover-by">Uncle Chicken, Laura y Fernanda</p>
@@ -569,6 +581,8 @@
       <button type="button" data-lang="es">Español</button>
       <button type="button" data-lang="en">English</button>
     </div>
+    <button type="button" class="cover-install" data-install>Descargar · Download</button>
+    <p class="cover-tip" data-install-tip hidden></p>
   </div>
 </div>
 
@@ -579,7 +593,11 @@
     <h1>Detector de Almas en Pena</h1>
     <p class="byline" id="byline">de Uncle Chicken, Laura y Fernanda</p>
     <p class="sub">Escribe la petición completa, luego tu pregunta. Si lo pides con respeto, el espíritu moverá la tabla.</p>
-    <button type="button" class="langbtn" id="langBtn" aria-label="Idioma / Language">English</button>
+    <div class="head-btns">
+      <button type="button" class="langbtn" id="langBtn" aria-label="Idioma / Language">English</button>
+      <button type="button" class="langbtn" id="installBtn" data-install>Descargar la app</button>
+    </div>
+    <p class="install-tip" data-install-tip hidden></p>
   </header>
 
   <div class="board" id="board" aria-label="Tablero de espiritismo">
@@ -1058,6 +1076,38 @@
   const langBtn = document.getElementById("langBtn");
   langBtn.textContent = tr("English", "Español");
   langBtn.addEventListener("click", () => setLang(EN ? "es" : "en"));
+
+  // descargar: instala la app en el teléfono; queda el ícono con la foto en la pantalla de inicio.
+  // Chrome y Edge ofrecen la instalación directa; en iPhone y otros navegadores se muestran los pasos.
+  (() => {
+    const btns = document.querySelectorAll("[data-install]"), tips = document.querySelectorAll("[data-install-tip]");
+    document.getElementById("installBtn").textContent = tr("Descargar la app", "Download the app");
+    const hideAll = () => { btns.forEach(b => b.hidden = true); tips.forEach(t => t.hidden = true); };
+    const standalone = () => (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+    if (standalone()) { hideAll(); return; } // ya está instalada
+    let deferred = null;
+    window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferred = e; });
+    window.addEventListener("appinstalled", hideAll);
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    const steps = both => {
+      const es = ios ? "En Safari: toca Compartir (el cuadrado con la flecha) y luego «Agregar a pantalla de inicio»."
+                     : "Abre el menú del navegador (los tres puntos) y elige «Instalar app» o «Agregar a pantalla de inicio».";
+      const en = ios ? "In Safari: tap Share (the square with the arrow), then “Add to Home Screen”."
+                     : "Open the browser menu (the three dots) and choose “Install app” or “Add to Home screen”.";
+      return both ? es + "\n" + en : tr(es, en);
+    };
+    btns.forEach(b => b.addEventListener("click", async () => {
+      if (deferred) {
+        const ev = deferred; deferred = null;
+        ev.prompt();
+        try { await ev.userChoice; } catch (e) {}
+        return;
+      }
+      // en la portada todavía no se eligió idioma: los pasos van en los dos
+      const inCover = !!b.closest("#cover");
+      tips.forEach(t => { if (!!t.closest("#cover") === inCover) { t.textContent = steps(inCover); t.hidden = false; } });
+    }));
+  })();
 
   // portada: aparece cada vez que se entra a la app (la foto, el nombre y la elección de idioma).
   // No sale tras cambiar de idioma ni cuando hay una llamada fantasma pendiente, para no taparla.
