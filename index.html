@@ -105,6 +105,12 @@
     object-fit: cover; object-position: 50% 22%;
     -webkit-mask-image: linear-gradient(to bottom, #000 62%, transparent 100%); mask-image: linear-gradient(to bottom, #000 62%, transparent 100%);
     animation: coverin 2.4s ease-out both;
+    filter: grayscale(1) contrast(1.2) brightness(1.2); /* visión nocturna: gris y, encima, el verde */
+  }
+  /* el verde del visor infrarrojo sobre las fotos */
+  .cover::before {
+    content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+    background: #6fd883; mix-blend-mode: multiply;
   }
   @keyframes coverin { from { opacity: 0; transform: scale(1.06); } to { opacity: 1; transform: none; } }
   /* la segunda foto va encima y aparece y desaparece con un fundido lento */
@@ -112,10 +118,13 @@
   @keyframes coverswap { 0%, 100% { opacity: 0; } 18%, 50% { opacity: 1; } 68% { opacity: 0; } }
   .cover::after {
     content: ""; position: absolute; inset: 0; pointer-events: none;
-    background: linear-gradient(to bottom, rgba(5,4,6,.35) 0%, rgba(5,4,6,0) 16%, rgba(5,4,6,0) 48%, rgba(5,4,6,.85) 74%, #050406 100%);
+    z-index: 1;
+    background:
+      linear-gradient(to bottom, rgba(5,4,6,.35) 0%, rgba(5,4,6,0) 16%, rgba(5,4,6,0) 48%, rgba(5,4,6,.85) 74%, #050406 100%),
+      repeating-linear-gradient(to bottom, rgba(0,0,0,.22) 0 1px, transparent 1px 4px); /* líneas de barrido */
   }
   .cover-box {
-    position: relative; z-index: 1; width: 100%; max-width: 560px; box-sizing: border-box; text-align: center;
+    position: relative; z-index: 2; width: 100%; max-width: 560px; box-sizing: border-box; text-align: center;
     padding: 0 20px calc(env(safe-area-inset-bottom, 0px) + 28px);
     display: flex; flex-direction: column; gap: 10px; align-items: center;
   }
